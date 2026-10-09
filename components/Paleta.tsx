@@ -50,7 +50,7 @@ function Dialogo({ onCerrar, acciones }: { onCerrar: () => void; acciones: Accio
   };
 
   return (
-    <div className="no-imprimir fixed inset-0 z-50 grid place-items-start justify-items-center bg-black/60 px-4 pt-[14vh] backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
+    <div className="no-imprimir fixed inset-0 z-50 grid place-items-start justify-items-center bg-scrim px-4 pt-[14vh] backdrop-blur-sm" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
       <div role="dialog" aria-modal="true" aria-label="Buscador de comandos" onKeyDown={tecla} className="vidrio-fuerte borde-neon aparece w-full max-w-xl overflow-hidden rounded-2xl shadow-pop">
         <div className="flex items-center gap-3 border-b border-line px-4">
           <span className="text-brand-600"><Icono nombre="diagnostico" /></span>
@@ -63,7 +63,7 @@ function Dialogo({ onCerrar, acciones }: { onCerrar: () => void; acciones: Accio
           {visibles.map((r, i) => (
             <li key={`${r.grupo}-${r.id}`} id={`${lista}-${i}`} role="option" aria-selected={i === activo}
               onMouseEnter={() => setActivo(i)} onClick={() => elegir(r)}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${i === activo ? "bg-brand-50 text-brand-800 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.35)]" : "text-ink"}`}>
+              className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${i === activo ? "bg-brand-50 text-brand-800 shadow-[inset_0_0_0_1px_var(--glow)]" : "text-ink"}`}>
               <span className={i === activo ? "text-brand-600" : "text-muted"}><Icono nombre={r.icono} /></span>
               <span className="flex-1 truncate">{r.texto}</span>
               <span className="etiqueta-mono text-[10px] text-muted">{r.grupo}</span>

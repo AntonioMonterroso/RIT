@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { datos } from "@/lib/datos";
 import type { EmpresaResumen, Ley, Recordatorio } from "@/lib/biblioteca";
 import { clienteSupabase, supabaseConfigurado } from "@/lib/supabase/cliente";
+import TemaToggle from "./TemaToggle";
 import { Aviso, AreaTexto, Boton, Insignia, Pagina, Tarjeta, Texto } from "./ui";
 
 const fmt = (iso: string) => iso.split("-").reverse().join("/");
@@ -41,7 +42,8 @@ export default function PanelOrganizador() {
     <div className="min-h-screen">
       <header className="flex h-14 items-center justify-between vidrio-fuerte border-x-0 border-t-0 px-5 md:px-8">
         <p className="text-sm font-bold">RIT Guatemala · Administración</p>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <TemaToggle />
           {datos().local && <Boton variante="secundario" pequeno onClick={() => router.push("/inicio")}>Ver como empresa</Boton>}
           {supabaseConfigurado && <Boton variante="fantasma" pequeno onClick={salir}>Salir</Boton>}
         </div>

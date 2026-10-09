@@ -91,8 +91,8 @@ export default function Inicio() {
               <ol className="relative ml-4 space-y-1 border-l border-line">
                 {lista.map((p, i) => (
                   <li key={p.id} className="relative pl-7">
-                    <span aria-hidden className={`absolute -left-[13px] top-4 grid h-6 w-6 place-items-center rounded-full border text-[11px] font-bold ${p.hecho ? "border-ok bg-ok/20 text-ok shadow-[0_0_14px_rgba(74,222,128,0.55)]" : p.avance > 0 ? "border-brand-600 bg-brand-50 text-brand-700 shadow-[0_0_12px_rgba(34,211,238,0.45)]" : "border-line bg-solid text-muted"}`}>{p.hecho ? "✓" : i + 1}</span>
-                    <Link href={p.href} className="group block rounded-xl px-3 py-3 transition-colors hover:bg-white/[0.05]">
+                    <span aria-hidden className={`absolute -left-[13px] top-4 grid h-6 w-6 place-items-center rounded-full border text-[11px] font-bold ${p.hecho ? "border-ok bg-ok/20 text-ok shadow-[0_0_14px_var(--glow-ok)]" : p.avance > 0 ? "border-brand-600 bg-brand-50 text-brand-700 shadow-[0_0_12px_var(--glow)]" : "border-line bg-solid text-muted"}`}>{p.hecho ? "✓" : i + 1}</span>
+                    <Link href={p.href} className="group block rounded-xl px-3 py-3 transition-colors hover:bg-velo2">
                       <span className="flex items-baseline justify-between gap-3">
                         <span className="text-sm font-semibold group-hover:text-brand-800">{p.titulo}</span>
                         <span className="etiqueta-mono shrink-0 text-[10px] text-muted">{p.detalle}</span>

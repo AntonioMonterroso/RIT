@@ -14,27 +14,38 @@ Regla: **las pantallas no usan colores sueltos** (`slate-*`, `#hex`); usan los t
 | Componentes | Botones y campos escritos a mano en cada pantalla | `Boton`, `Tarjeta`, `Insignia`, `Aviso`, `Progreso`, `Anillo`, `Texto`, `Seleccion`, `AreaTexto`, `Interruptor`, `Pagina`, `Vacio` |
 | Responsive | Solo escritorio | Menú deslizable en móvil, hoja adaptable, sin desborde horizontal (probado a 390 px) |
 
-Pendiente: variante clara, pruebas con lector de pantalla reales, contraste verificado por herramienta.
+Pendiente: pruebas con lector de pantalla reales.
 
-## 2. Tema «Nebulosa» (oscuro, cristal y neón)
+## 2. Temas «Porcelana» y «Pizarra»
 
-Una sola identidad: fondo azul-negro con aurora cian/violeta y rejilla tenue, paneles de **cristal** (translúcidos con desenfoque), acentos con **brillo** y tipografía técnica para datos.
+Misma estructura y mismos tokens en dos paletas, con un interruptor en la cabecera. Se recuerda la elección (`localStorage`, clave `rit:tema`) y un script previo al pintado evita el parpadeo. Por defecto: **Porcelana**.
+
+| | Porcelana (claro, por defecto) | Pizarra (oscuro) |
+| --- | --- | --- |
+| Carácter | Papel azulado, pasteles suaves (celeste, lavanda, rosa) y tinta azul marino | Azul pizarra apagado con acentos periwinkle y lavanda |
+| Fondo | `#f3f5fa` con aurora pastel y rejilla tenue | `#0e131f` con aurora azul-violeta muy suave |
+| Texto | `ink` 13:1 · `muted` 5.6:1 | `ink` 15:1 · `muted` 7.7:1 |
+| Acento | `brand-700` `#33508f` (texto) · `brand-600` `#5877c0` (íconos) | `brand-700` `#b9c9f3` · `brand-600` `#8aa4e6` |
+| Botón principal | Degradado `#4a67b0 → #6a5fb5`, texto blanco (5.4:1) | Degradado `#8aa4e6 → #a99be0`, texto oscuro (7.5:1) |
+| Estados | Fondos pastel (`#e4f3ea`, `#fbf0d8`, `#fae7e7`, `#e5eefa`) con texto ≥ 5.2:1 | Fondos translúcidos con texto pastel ≥ 6.5:1 |
 
 | Grupo | Tokens |
 | --- | --- |
-| Texto y superficies | `ink` (texto), `muted` (7.4:1 sobre el fondo), `line` (bordes translúcidos), `canvas`, `surface` (cristal), `solid` |
-| Acento | `brand-600` cian vivo · `brand-700/800` cian claro para texto y enlaces · `brand-50/100` velos translúcidos · `violeta` |
-| Estados | `ok`, `warn`, `danger`, `info`, cada uno con `-bg` y `-line` translúcidos |
+| Texto y superficies | `ink`, `muted`, `line`, `canvas`, `surface` (cristal), `solid`, `surface-fuerte` |
+| Capas de apoyo | `campo` (fondo de inputs), `velo` / `velo-2` (hover y tintes), `hondo` (paneles interiores), `scrim` |
+| Acento | `brand-50/100` (velos), `brand-600/700/800/900`, `violeta` |
+| Estados | `ok`, `warn`, `danger`, `info` con `-bg` y `-line` |
+| Degradados y brillo | `btn-a/b/ink`, `grad-a/b/c`, `txt-a/b/c`, `borde-a/b`, `glow`, `glow-ok`, `aurora-1/2/3`, `rejilla` |
 | Forma | radio 18 px; `shadow-card`, `shadow-pop`, `brillo` |
-| Tipografía | Geist (interfaz) y Geist Mono (etiquetas, cifras e indicadores, en mayúsculas con espaciado). La hoja del reglamento usa Times New Roman 12 pt sobre **papel blanco** para verse como saldrá en Word |
+| Tipografía | Geist (interfaz) y Geist Mono (etiquetas y cifras, en mayúsculas con espaciado). La hoja del reglamento usa Times New Roman 12 pt sobre **papel blanco** en ambos temas |
 
 Clases del tema (capa `components`, para que las utilidades de Tailwind puedan sobrescribirlas): `.vidrio`, `.vidrio-fuerte`, `.borde-neon`, `.degradado-texto`, `.degradado-boton`, `.etiqueta-mono`, `.brillo`, `.aparece`, `.pulso`.
 
 Reglas:
-- Las pantallas usan tokens, nunca `slate-*` ni `#hex`.
+- Las pantallas usan tokens, nunca `slate-*`, `#hex` ni `bg-black/…` / `bg-white/…` (no funcionan en ambos temas).
 - Todo CSS propio que pueda chocar con utilidades va en una capa (`@layer`); fuera de capas siempre gana al utilitario.
-- Contraste: texto normal ≥ 4.5:1. `muted` sobre `canvas` = 7.4:1.
-- Solo hay tema oscuro (`color-scheme: dark`). Pendiente: variante clara.
+- **El contraste se mide, no se supone**: `tests/contraste.test.ts` lee los tokens de `globals.css` y exige ≥ 4.5:1 en texto, enlaces, botones y estados, y ≥ 3:1 en el acento de íconos, en los dos temas. Si cambia un color y la prueba falla, el color no sirve.
+- Pasteles para superficies y tintes; tonos medios para lo que se lee o se pulsa.
 
 ## 3. Componentes
 

@@ -7,7 +7,7 @@ import { useId } from "react";
 export type Tono = "neutro" | "marca" | "ok" | "warn" | "danger" | "info";
 
 const TONO: Record<Tono, string> = {
-  neutro: "bg-white/5 text-muted border-line",
+  neutro: "bg-velo text-muted border-line",
   marca: "bg-brand-50 text-brand-700 border-brand-600/40",
   ok: "bg-ok-bg text-ok border-ok-line",
   warn: "bg-warn-bg text-warn border-warn-line",
@@ -20,9 +20,9 @@ const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ")
 /* ───────── Botón ───────── */
 type Variante = "primario" | "secundario" | "fantasma" | "peligro";
 const VARIANTE: Record<Variante, string> = {
-  primario: "degradado-boton border-transparent shadow-[0_0_22px_-6px_rgba(34,211,238,0.7)] hover:brightness-110 hover:shadow-[0_0_30px_-4px_rgba(34,211,238,0.85)]",
+  primario: "degradado-boton border-transparent shadow-[0_0_22px_-6px_var(--glow)] hover:brightness-110 hover:shadow-[0_0_30px_-4px_var(--glow)]",
   secundario: "vidrio text-brand-700 hover:border-brand-600/60 hover:bg-brand-50",
-  fantasma: "bg-transparent text-ink border-transparent hover:bg-white/8",
+  fantasma: "bg-transparent text-ink border-transparent hover:bg-velo2",
   peligro: "bg-transparent text-danger border-danger-line hover:bg-danger-bg",
 };
 
@@ -81,18 +81,18 @@ export function Aviso({ tono = "info", titulo, children, className }: { tono?: T
 export function Progreso({ valor, etiqueta, tono = "marca" }: { valor: number; etiqueta: string; tono?: "marca" | "ok" | "warn" | "danger" }) {
   const v = Math.max(0, Math.min(100, Math.round(valor)));
   const color = {
-    marca: "bg-gradient-to-r from-[#22d3ee] to-[#a78bfa] shadow-[0_0_12px_rgba(34,211,238,0.55)]",
-    ok: "bg-ok shadow-[0_0_10px_rgba(74,222,128,0.5)]", warn: "bg-warn", danger: "bg-danger",
+    marca: "bg-gradient-to-r from-[var(--grad-a)] to-[var(--grad-b)] shadow-[0_0_12px_var(--glow)]",
+    ok: "bg-ok shadow-[0_0_10px_var(--glow-ok)]", warn: "bg-warn", danger: "bg-danger",
   }[tono];
   return (
-    <div role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+    <div role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} className="h-1.5 w-full overflow-hidden rounded-full bg-velo2">
       <div className={cx("h-full rounded-full transition-all", color)} style={{ width: `${v}%` }} />
     </div>
   );
 }
 
 /* ───────── Campos de formulario ───────── */
-const ENTRADA = "mt-1.5 w-full rounded-xl border border-line bg-black/30 px-3.5 py-2.5 text-sm font-normal text-ink placeholder:text-muted/60 transition-colors hover:border-brand-600/40 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30 disabled:opacity-50";
+const ENTRADA = "mt-1.5 w-full rounded-xl border border-line bg-campo px-3.5 py-2.5 text-sm font-normal text-ink placeholder:text-muted/60 transition-colors hover:border-brand-600/40 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30 disabled:opacity-50";
 
 export function Campo({ etiqueta, ayuda, error, ancho, children }: {
   etiqueta: string; ayuda?: string; error?: string; ancho?: boolean;
@@ -156,7 +156,7 @@ export function Pagina({ titulo, descripcion, acciones, children, ancho = "max-w
 
 export function Vacio({ titulo, children }: { titulo: string; children?: React.ReactNode }) {
   return (
-    <div className="rounded-[var(--radius)] border border-dashed border-line bg-white/[0.03] px-6 py-10 text-center">
+    <div className="rounded-[var(--radius)] border border-dashed border-line bg-velo px-6 py-10 text-center">
       <p className="font-semibold text-ink">{titulo}</p>
       {children && <div className="mt-1 text-sm text-muted">{children}</div>}
     </div>
@@ -172,11 +172,11 @@ export function Anillo({ valor, etiqueta, tamano = 168, children }: { valor: num
     <div role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={100} aria-valuenow={v} className="relative grid place-items-center" style={{ width: tamano, height: tamano }}>
       <svg viewBox="0 0 120 120" className="absolute inset-0 -rotate-90" aria-hidden>
         <defs>
-          <linearGradient id={`g${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#22d3ee" /><stop offset="55%" stopColor="#818cf8" /><stop offset="100%" stopColor="#f0abfc" /></linearGradient>
+          <linearGradient id={`g${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" style={{ stopColor: "var(--grad-a)" }} /><stop offset="55%" style={{ stopColor: "var(--grad-b)" }} /><stop offset="100%" style={{ stopColor: "var(--grad-c)" }} /></linearGradient>
         </defs>
-        <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(148,170,220,0.16)" strokeWidth="7" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--line)" strokeWidth="7" />
         <circle cx="60" cy="60" r={r} fill="none" stroke={`url(#g${id})`} strokeWidth="7" strokeLinecap="round"
-          strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)", filter: "drop-shadow(0 0 6px rgba(34,211,238,.6))" }} />
+          strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} style={{ transition: "stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)", filter: "drop-shadow(0 0 5px var(--glow))" }} />
       </svg>
       <div className="relative text-center">{children}</div>
     </div>

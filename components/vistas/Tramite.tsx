@@ -32,7 +32,7 @@ export default function Tramite() {
       <Tarjeta titulo="Etapa actual">
         <ol className="grid gap-3 md:grid-cols-4">
           {ETAPAS.map((e, i) => (
-            <li key={e.id} className={`rounded-xl border p-3 ${i === idx ? "border-brand-600 bg-brand-50" : i < idx ? "border-ok-line bg-ok-bg" : "border-line bg-white/[0.03]"}`}>
+            <li key={e.id} className={`rounded-xl border p-3 ${i === idx ? "border-brand-600 bg-brand-50" : i < idx ? "border-ok-line bg-ok-bg" : "border-line bg-velo"}`}>
               <p className="flex items-center gap-2 text-sm font-bold">{i < idx ? "✓" : i + 1}. {e.titulo}{i === idx && <Insignia tono="marca">Aquí</Insignia>}</p>
               <p className="mt-1 text-xs text-muted">{e.texto}</p>
             </li>

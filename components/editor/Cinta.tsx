@@ -16,7 +16,7 @@ function Boton({ activo, onClick, titulo, children, deshabilitado }: {
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={`h-8 min-w-8 px-2 rounded text-sm font-medium transition-colors disabled:opacity-40 ${
-        activo ? "bg-brand-100 text-brand-800" : "hover:bg-white/10 text-ink"
+        activo ? "bg-brand-100 text-brand-800" : "hover:bg-velo2 text-ink"
       }`}
     >
       {children}
@@ -24,7 +24,7 @@ function Boton({ activo, onClick, titulo, children, deshabilitado }: {
   );
 }
 
-const Sep = () => <span className="mx-1 h-6 w-px bg-white/15" aria-hidden />;
+const Sep = () => <span className="mx-1 h-6 w-px bg-velo2" aria-hidden />;
 
 /** Barra de herramientas tipo cinta de Word. */
 export function Cinta({ editor, onClausula }: { editor: Editor; onClausula: () => void }) {
@@ -64,7 +64,7 @@ export function Cinta({ editor, onClausula }: { editor: Editor; onClausula: () =
           if (v === "0") c().setParagraph().run();
           else c().setHeading({ level: Number(v) as 1 | 2 | 3 }).run();
         }}
-        className="h-8 rounded-lg border border-line bg-black/30 px-2 text-sm text-ink"
+        className="h-8 rounded-lg border border-line bg-campo px-2 text-sm text-ink"
       >
         <option value="0">Texto normal</option>
         <option value="1">Título 1</option>

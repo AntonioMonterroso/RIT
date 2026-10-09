@@ -21,7 +21,7 @@ Guía a la empresa de punta a punta, en este orden (`/inicio` muestra el avance 
 7. **Calendario** con plazos, recordatorios propios y avisos generales; **biblioteca legal**.
 8. **Ajustes**: datos de la empresa y respaldo/restauración.
 
-Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+Dos temas, **Porcelana** (claro, pastel formal, por defecto) y **Pizarra** (oscuro), con interruptor. Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Estado
 

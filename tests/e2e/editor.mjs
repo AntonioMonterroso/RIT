@@ -39,6 +39,7 @@ const descargar = async (boton) => {
 await ir("/");
 await page.getByRole("heading", { level: 1 }).waitFor();
 verificar(/listo para la IGT/.test(await page.getByRole("heading", { level: 1 }).innerText()), "la raíz muestra la portada del producto");
+await page.waitForTimeout(800);
 await page.screenshot({ path: path.join(OUT, "00_portada.png"), fullPage: true });
 await page.getByRole("button", { name: "Planes" }).click();
 verificar(await page.getByRole("heading", { name: "Empresa", exact: true }).isVisible() && await page.getByRole("heading", { name: "Despacho", exact: true }).isVisible() && await page.getByRole("heading", { name: "Corporativo", exact: true }).isVisible(), "la portada muestra los tres planes");
@@ -46,10 +47,21 @@ verificar(await page.getByText("Precios de ejemplo").isVisible(), "los precios s
 await page.setViewportSize({ width: 390, height: 800 });
 verificar(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), "la portada no se desborda en móvil");
 await page.setViewportSize({ width: 1440, height: 900 });
+// Tema: claro por defecto, oscuro con el interruptor, y se recuerda al recargar.
+const fondo = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+verificar((await page.evaluate(() => document.documentElement.dataset.tema)) === "claro", "el tema por defecto es el claro (Porcelana)");
+const fondoClaro = await fondo();
+await page.getByRole("button", { name: "Cambiar a tema oscuro" }).click();
+verificar((await page.evaluate(() => document.documentElement.dataset.tema)) === "oscuro" && (await fondo()) !== fondoClaro, "el interruptor cambia a Pizarra (oscuro) y cambia el fondo");
+await page.reload();
+verificar((await page.evaluate(() => document.documentElement.dataset.tema)) === "oscuro", "el tema elegido se recuerda al recargar");
+await page.screenshot({ path: path.join(OUT, "00_portada_oscuro.png") });
+await page.getByRole("button", { name: "Cambiar a tema claro" }).click();
 await page.getByRole("link", { name: "Entrar al sistema" }).click();
 await esperaRuta("/inicio");
 await page.getByText("Ruta hacia un reglamento aprobado").waitFor();
 verificar((await texto()).includes("Ruta hacia un reglamento aprobado"), "«Entrar al sistema» lleva al centro de mando");
+await page.waitForTimeout(900);
 await page.screenshot({ path: path.join(OUT, "01_inicio.png") });
 
 // 2. Datos de la empresa
@@ -66,6 +78,7 @@ await page.getByLabel("Giro del negocio").selectOption("restaurante");
 await page.getByLabel("Trabajadores permanentes").fill("25");
 await page.getByLabel("Días laborales").fill("lunes a sábado");
 verificar(await page.getByText("Excede el límite").isVisible(), "lunes a sábado de 8 h excede el límite semanal y se avisa");
+await page.waitForTimeout(700);
 await page.screenshot({ path: path.join(OUT, "02_diagnostico.png") });
 await page.getByLabel("Días laborales").fill("lunes a viernes");
 verificar(await page.getByText("Dentro del límite").isVisible(), "lunes a viernes queda dentro del límite");
@@ -104,6 +117,7 @@ verificar(await page.locator(".hoja .pendiente").first().isVisible(), "el sistem
 const ancho = await page.evaluate(() => { const h = document.querySelector(".hoja"); const c = h.parentElement; return { hoja: h.getBoundingClientRect().width, scroll: h.scrollWidth, cont: c.clientWidth }; });
 verificar(ancho.scroll <= ancho.hoja + 1, "la hoja no se recorta (sin desborde interno)");
 verificar(ancho.hoja >= 700, `la hoja conserva un ancho cómodo en 1440 px (${Math.round(ancho.hoja)} px)`);
+await page.waitForTimeout(700);
 await page.screenshot({ path: path.join(OUT, "03_editor.png") });
 
 // 5. Puestos
@@ -124,6 +138,7 @@ for (const n of ["Copia legible de la Patente", "Copia del nombramiento", "Plani
   await page.getByRole("checkbox", { name: new RegExp(n) }).check();
 }
 verificar(await page.getByText(/Riesgo de previo/).isVisible() || /\d+%/.test(await texto()), "los documentos manuales suben el puntaje");
+await page.waitForTimeout(700);
 await page.screenshot({ path: path.join(OUT, "04_auditoria.png") });
 
 // 7. Memorial
@@ -148,7 +163,12 @@ verificar((await texto()).includes("24/10/2026"), "la vigencia se calcula a 15 d
 await ir("/inicio");
 await page.getByText("Todo completo").waitFor();
 verificar(/100%/.test(await texto()), "con todos los pasos hechos el avance es 100%");
+await page.waitForTimeout(900); // termina la animación de entrada
 await page.screenshot({ path: path.join(OUT, "05_inicio_completo.png") });
+await page.getByRole("button", { name: "Cambiar a tema oscuro" }).click();
+await page.waitForTimeout(500);
+await page.screenshot({ path: path.join(OUT, "05b_inicio_oscuro.png") });
+await page.getByRole("button", { name: "Cambiar a tema claro" }).click();
 
 // 11. Formatos con datos reales
 await ir("/formatos");
