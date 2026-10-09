@@ -1,32 +1,79 @@
 @import "tailwindcss";
 
+/* ───────── Tokens de diseño ─────────
+   Una sola fuente de verdad para color, forma y sombra. Los componentes (components/ui.tsx)
+   usan estas clases semánticas; evite colores sueltos (slate-*, #hex) en las pantallas. */
 :root {
-  --background: #f1f5f9;
-  --foreground: #0f172a;
-  --primary: #1e3a8a;
-  --primary-soft: #eff6ff;
-  --borde: #e2e8f0;
-  --muted: #64748b;
+  --ink: #0f172a;
+  --muted: #55657d;
+  --line: #d9e1ec;
+  --canvas: #f3f6fb;
+  --surface: #ffffff;
+
+  --brand-50: #eef3ff;
+  --brand-100: #dbe6ff;
+  --brand-600: #2b50c4;
+  --brand-700: #1e3a8a;
+  --brand-800: #172e6e;
+  --brand-900: #0f2150;
+
+  --ok: #14693a;       --ok-bg: #e6f5ec;       --ok-line: #9fd5b4;
+  --warn: #8a4b04;     --warn-bg: #fdf1dc;     --warn-line: #f0c46f;
+  --danger: #a82216;   --danger-bg: #fdeceb;   --danger-line: #f1a9a3;
+  --info: #0a56a3;     --info-bg: #e5f0fb;     --info-line: #9cc4ec;
+
+  --radius: 10px;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-pop: 0 8px 28px rgba(15, 23, 42, 0.14);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-ok: var(--ok);         --color-ok-bg: var(--ok-bg);         --color-ok-line: var(--ok-line);
+  --color-warn: var(--warn);     --color-warn-bg: var(--warn-bg);     --color-warn-line: var(--warn-line);
+  --color-danger: var(--danger); --color-danger-bg: var(--danger-bg); --color-danger-line: var(--danger-line);
+  --color-info: var(--info);     --color-info-bg: var(--info-bg);     --color-info-line: var(--info-line);
   --font-sans: var(--font-geist-sans);
+  --radius-card: var(--radius);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
 }
 
+html { color-scheme: light; }
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible { outline: 2px solid var(--brand-600); outline-offset: 2px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+@media print {
+  body { background: #fff; }
+  .no-imprimir { display: none !important; }
 }
 
 /* Hoja carta (8.5" x 11" a 96 dpi) con márgenes de 1". La línea punteada marca el corte
    aproximado de página cada 11"; el corte definitivo lo calcula Word al abrir el .docx. */
 .hoja {
-  width: 816px;
+  width: 100%;
+  max-width: 816px;
   min-height: 1056px;
-  padding: 96px;
+  padding: 96px 11.76%; /* 1" de margen a 816 px; se reduce proporcionalmente en pantallas angostas */
   margin: 0 auto;
   background-color: #fff;
   background-image: repeating-linear-gradient(
@@ -42,7 +89,7 @@ body {
   line-height: 1.5;
 }
 
-.hoja .ProseMirror { outline: none; min-height: 864px; }
+.hoja .ProseMirror { outline: none; min-height: 700px; }
 .hoja .ProseMirror p { margin: 0 0 0.8em; text-align: justify; }
 .hoja .ProseMirror h1 { font-size: 1.4em; font-weight: 700; text-align: center; margin: 1em 0 0.5em; }
 .hoja .ProseMirror h2 { font-size: 1.15em; font-weight: 700; margin: 1em 0 0.4em; }
@@ -54,7 +101,7 @@ body {
 .hoja .ProseMirror th { background: #e2e8f0; font-weight: 700; }
 .hoja .ProseMirror hr { border: 0; border-top: 1px solid #000; margin: 1em 0; }
 .hoja .ProseMirror .salto-pagina {
-  border-top: 2px dashed #94a3b8; margin: 1.5em -96px; text-align: center; position: relative; height: 0;
+  border-top: 2px dashed #94a3b8; margin: 1.5em -13.5%; text-align: center; position: relative; height: 0;
 }
 .hoja .ProseMirror .salto-pagina::after {
   content: "Salto de página"; position: absolute; top: -0.7em; left: 50%; transform: translateX(-50%);
@@ -63,3 +110,5 @@ body {
 .hoja .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder); color: #94a3b8; float: left; height: 0; pointer-events: none;
 }
+
+.hoja .ProseMirror .pendiente { background: var(--warn-bg); outline: 1px solid var(--warn-line); border-radius: 3px; }

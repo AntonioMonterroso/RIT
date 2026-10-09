@@ -87,6 +87,14 @@ create table public.empresa_datos (
   actualizado_en timestamptz not null default now()
 );
 
+create table public.rit_configuracion (
+  empresa_id uuid primary key references public.empresas (id) on delete cascade,
+  diagnostico jsonb not null default '{}'::jsonb,
+  puestos jsonb not null default '[]'::jsonb,
+  tramite jsonb not null default '{}'::jsonb,
+  actualizado_en timestamptz not null default now()
+);
+
 create table public.publicaciones (
   empresa_id uuid primary key references public.empresas (id) on delete cascade,
   fecha date,
@@ -120,6 +128,7 @@ alter table public.memoriales enable row level security;
 alter table public.recordatorios_empresa enable row level security;
 alter table public.empresa_datos enable row level security;
 alter table public.publicaciones enable row level security;
+alter table public.rit_configuracion enable row level security;
 alter table public.biblioteca_leyes enable row level security;
 alter table public.recordatorios_globales enable row level security;
 
@@ -136,7 +145,7 @@ create policy empresas_lectura on public.empresas for select
 do $$
 declare t text;
 begin
-  foreach t in array array['rit_documentos','rit_versiones','checklist_igt','memoriales','recordatorios_empresa','empresa_datos','publicaciones']
+  foreach t in array array['rit_documentos','rit_versiones','checklist_igt','memoriales','recordatorios_empresa','empresa_datos','publicaciones','rit_configuracion']
   loop
     execute format('create policy %I_leer on public.%I for select using (empresa_id = public.mi_empresa())', t, t);
     execute format(

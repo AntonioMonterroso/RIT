@@ -18,6 +18,7 @@ insert into perfiles(user_id, rol, empresa_id) values
 insert into empresa_datos(empresa_id, razon_social, nit) values
   ('11111111-1111-1111-1111-111111111111', 'Razon A', '111'),
   ('22222222-2222-2222-2222-222222222222', 'Razon B', '222');
+insert into rit_configuracion(empresa_id, puestos) values ('11111111-1111-1111-1111-111111111111', '[{"nombre":"Secreto A"}]'), ('22222222-2222-2222-2222-222222222222', '[]');
 insert into rit_documentos(empresa_id, capitulo, contenido) values
   ('11111111-1111-1111-1111-111111111111', 'mod_1', '{"secreto":"A"}'),
   ('22222222-2222-2222-2222-222222222222', 'mod_1', '{"secreto":"B"}'),
@@ -43,6 +44,7 @@ select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
 select pg_temp.afirma((select count(*) from rit_documentos) = 1, 'A ve 1 capítulo (el suyo)');
 select pg_temp.afirma((select contenido->>'secreto' from rit_documentos) = 'A', 'A lee su propio contenido');
 select pg_temp.afirma((select count(*) from empresas) = 1, 'A ve solo su empresa');
+select pg_temp.afirma((select count(*) from rit_configuracion) = 1, 'A ve solo su configuración');
 update rit_documentos set contenido = '{"secreto":"A2"}' where capitulo = 'mod_1';
 select pg_temp.afirma((select contenido->>'secreto' from rit_documentos) = 'A2', 'A edita lo suyo (suscripción activa)');
 select pg_temp.falla($q$insert into rit_documentos(empresa_id, capitulo) values ('22222222-2222-2222-2222-222222222222','mod_2')$q$, 'A no escribe en B');
@@ -52,6 +54,7 @@ reset role;
 -- Empresa B no ve a A.
 select pg_temp.como('b0000000-0000-0000-0000-00000000000b');
 select pg_temp.afirma((select count(*) from rit_documentos where contenido->>'secreto' like 'A%') = 0, 'B no ve el contenido de A');
+select pg_temp.afirma((select count(*) from rit_configuracion where puestos::text like '%Secreto A%') = 0, 'B no ve los puestos de A');
 reset role;
 
 -- Empresa C: lee lo suyo pero no escribe (morosa).
@@ -69,6 +72,7 @@ select pg_temp.afirma((select count(*) from memoriales) = 0, 'organizador no ve 
 select pg_temp.afirma((select count(*) from recordatorios_empresa) = 0, 'organizador no ve plazos de empresas');
 select pg_temp.afirma((select count(*) from empresa_datos) = 0, 'organizador no ve razón social, NIT ni representante');
 select pg_temp.afirma((select count(*) from publicaciones) = 0, 'organizador no ve publicaciones');
+select pg_temp.afirma((select count(*) from rit_configuracion) = 0, 'organizador no ve diagnóstico, puestos ni trámite');
 select pg_temp.afirma((select count(*) from empresas) = 3, 'organizador lista las empresas');
 select pg_temp.falla($q$insert into rit_documentos(empresa_id, capitulo) values ('11111111-1111-1111-1111-111111111111','mod_2')$q$, 'organizador no escribe RIT');
 insert into biblioteca_leyes(titulo, referencia, contenido) values ('Código de Trabajo', 'Decreto 1441', 'texto');

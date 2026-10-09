@@ -1,6 +1,7 @@
 import type { CapituloKey } from "@/content/capitulos";
 import type { Nodo } from "@/lib/docx";
 import { MEMORIAL_INICIAL, type DatosMemorial } from "@/lib/memorial";
+import { DIAGNOSTICO_INICIAL, TRAMITE_INICIAL, type Diagnostico, type Puesto, type Tramite } from "@/lib/tipos";
 
 export interface Empresa {
   razon_social: string;
@@ -19,6 +20,9 @@ export interface EstadoRit {
   memorial: DatosMemorial;
   publicacion: { fecha: string; medio: "" | "fijacion" | "folleto" | "ambos" };
   recordatorios: RecordatorioPropio[];
+  diagnostico: Diagnostico;
+  puestos: Puesto[];
+  tramite: Tramite;
   actualizado: string | null;
 }
 
@@ -29,20 +33,35 @@ export const ESTADO_INICIAL: EstadoRit = {
   memorial: MEMORIAL_INICIAL,
   publicacion: { fecha: "", medio: "" },
   recordatorios: [],
+  diagnostico: DIAGNOSTICO_INICIAL,
+  puestos: [],
+  tramite: TRAMITE_INICIAL,
   actualizado: null,
 };
 
 const CLAVE = "rit:borrador:v1";
 
+/** Completa con valores por defecto un estado parcial (borrador antiguo, respaldo importado). */
+export function fusionar(p: Partial<EstadoRit>): EstadoRit {
+  return {
+    ...ESTADO_INICIAL, ...p,
+    empresa: { ...ESTADO_INICIAL.empresa, ...p.empresa },
+    memorial: { ...MEMORIAL_INICIAL, ...p.memorial },
+    publicacion: { ...ESTADO_INICIAL.publicacion, ...p.publicacion },
+    diagnostico: { ...DIAGNOSTICO_INICIAL, ...p.diagnostico },
+    tramite: { ...TRAMITE_INICIAL, ...p.tramite },
+    puestos: p.puestos ?? [],
+    recordatorios: p.recordatorios ?? [],
+    capitulos: p.capitulos ?? {},
+    manuales: p.manuales ?? {},
+  };
+}
+
 /** Borrador local. Se reemplaza por Supabase cuando exista la cuenta de la empresa. */
 export function cargarBorrador(): EstadoRit {
   try {
     const raw = localStorage.getItem(CLAVE);
-    if (!raw) return ESTADO_INICIAL;
-    const p = JSON.parse(raw) as Partial<EstadoRit>;
-    return { ...ESTADO_INICIAL, ...p, empresa: { ...ESTADO_INICIAL.empresa, ...p.empresa },
-      memorial: { ...MEMORIAL_INICIAL, ...p.memorial },
-      publicacion: { ...ESTADO_INICIAL.publicacion, ...p.publicacion } };
+    return raw ? fusionar(JSON.parse(raw) as Partial<EstadoRit>) : ESTADO_INICIAL;
   } catch {
     return ESTADO_INICIAL;
   }

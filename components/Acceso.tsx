@@ -19,13 +19,13 @@ export default function Acceso() {
   /** Decide a dónde ir según haya sesión y empresa. */
   const encaminar = useCallback(async () => {
     const db = clienteSupabase();
-    if (!db) return router.replace("/editor");
+    if (!db) return router.replace("/inicio");
     const { data: sesion } = await db.auth.getSession();
     if (!sesion.session) return setPaso("credenciales");
     const { data: perfil, error } = await db.from("perfiles").select("rol").maybeSingle();
     if (error) { setMensaje("No se pudo consultar su cuenta. Intente de nuevo."); return setPaso("credenciales"); }
     if (!perfil) return setPaso("empresa");
-    router.replace(perfil.rol === "organizador" ? "/organizador" : "/editor");
+    router.replace(perfil.rol === "organizador" ? "/organizador" : "/inicio");
   }, [router]);
 
   useEffect(() => { void encaminar(); }, [encaminar]);
@@ -52,7 +52,7 @@ export default function Acceso() {
     const { error } = await db.rpc("crear_empresa", { p_nombre: empresa });
     setOcupado(false);
     if (error) return setMensaje(error.message);
-    router.replace("/editor");
+    router.replace("/inicio");
   }
 
   const campo = "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal";
@@ -65,7 +65,7 @@ export default function Acceso() {
       {!supabaseConfigurado && (
         <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           Las cuentas no están configuradas en este entorno. Puede usar el{" "}
-          <a className="font-semibold underline" href="/editor">constructor en modo local</a>; su borrador se guarda solo en este navegador.
+          <a className="font-semibold underline" href="/inicio">sistema en modo local</a>; su borrador se guarda solo en este navegador.
         </p>
       )}
 

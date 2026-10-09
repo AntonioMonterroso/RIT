@@ -94,7 +94,7 @@ export function Cinta({ editor, onClausula }: { editor: Editor; onClausula: () =
       )}
       <Boton titulo="Salto de página" onClick={() => c().insertarSaltoPagina().run()}>⤓ Salto</Boton>
       <Sep />
-      <Boton titulo="Insertar cláusula estándar IGT en este capítulo" onClick={onClausula}>⚡ Cláusula estándar</Boton>
+      <Boton titulo="Abrir la biblioteca de cláusulas de este capítulo" onClick={onClausula}>❏ Cláusulas</Boton>
     </div>
   );
 }

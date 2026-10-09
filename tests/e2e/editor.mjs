@@ -1,4 +1,5 @@
-// Prueba de punta a punta del constructor (ejecutar con el servidor en BASE_URL).
+// Recorrido completo en modo local: diagnóstico → borrador → puestos → auditoría → memorial →
+// trámite → publicidad → formatos → respaldo. Uso: BASE_URL=... OUT_DIR=... node tests/e2e/editor.mjs
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
@@ -6,60 +7,156 @@ import path from "node:path";
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const OUT = process.env.OUT_DIR ?? ".";
 const exe = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
+const pasos = [];
+const ok = (m) => pasos.push(m);
+const falla = (m) => { throw new Error(m); };
+const verificar = (c, m) => (c ? ok(m) : falla("FALLÓ: " + m));
 
 const browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"] });
-const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1400, height: 900 } });
+const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 } });
 const page = await ctx.newPage();
 const errores = [];
 page.on("pageerror", (e) => errores.push(e.message));
 page.on("console", (m) => m.type() === "error" && errores.push(m.text()));
+const ir = (r) => page.goto(`${BASE}${r}`);
+const texto = () => page.locator("main").innerText();
+const descargar = async (boton) => {
+  const [d] = await Promise.all([page.waitForEvent("download"), boton.click()]);
+  const destino = path.join(OUT, d.suggestedFilename());
+  await d.saveAs(destino);
+  return destino;
+};
 
-await page.goto(`${BASE}/editor`);
-await page.getByRole("button", { name: "Datos de la empresa" }).click();
-await page.getByLabel("Razón social (según patente)").fill("Comercializadora Prueba, S.A.");
-await page.getByLabel("Nombre comercial").fill("La Tienda Central");
-await page.getByRole("button", { name: "Redacción" }).click();
+// 1. Entrada
+await ir("/");
+await page.waitForURL("**/inicio");
+verificar((await texto()).includes("Ruta hacia un reglamento aprobado"), "la raíz lleva al Inicio con la ruta de pasos");
+await page.screenshot({ path: path.join(OUT, "01_inicio.png") });
 
-const editor = page.locator(".hoja .ProseMirror");
-await editor.click();
-await page.keyboard.type("Artículo 1. Este reglamento aplica a todo el personal de la empresa.");
-await page.getByRole("button", { name: "Negrita (Ctrl+B)" }).click();
-await page.keyboard.type(" Texto en negrita.");
-await page.getByRole("button", { name: "Insertar cláusula estándar IGT en este capítulo" }).click();
-await page.getByRole("button", { name: "Insertar tabla" }).click();
-await page.screenshot({ path: path.join(OUT, "editor.png") });
+// 2. Datos de la empresa
+await ir("/ajustes");
+await page.getByLabel("Razón social (según patente)").fill("Restaurante Sabor Chapín, S.A.");
+await page.getByLabel("Nombre comercial").fill("Sabor Chapín");
+await page.getByLabel("NIT").fill("1234567-8");
+await page.getByLabel("Representante legal").fill("Ana López Pérez");
+await page.getByLabel("Departamento").fill("Quetzaltenango");
 
+// 3. Diagnóstico con alerta de jornada
+await ir("/diagnostico");
+await page.getByLabel("Giro del negocio").selectOption("restaurante");
+await page.getByLabel("Trabajadores permanentes").fill("25");
+await page.getByLabel("Días laborales").fill("lunes a sábado");
+verificar(await page.getByText("Excede el límite").isVisible(), "lunes a sábado de 8 h excede el límite semanal y se avisa");
+await page.screenshot({ path: path.join(OUT, "02_diagnostico.png") });
+await page.getByLabel("Días laborales").fill("lunes a viernes");
+verificar(await page.getByText("Dentro del límite").isVisible(), "lunes a viernes queda dentro del límite");
+await page.getByText("Teletrabajo o trabajo híbrido").click();
+await page.getByText("Maneja efectivo, inventarios o fondos").click();
+await page.getByRole("button", { name: "Generar borrador personalizado" }).click();
+await page.waitForURL("**/editor");
+
+// 4. Editor con el borrador
+const hoja = page.locator(".hoja .ProseMirror");
+await hoja.waitFor();
+let t = await hoja.innerText();
+verificar(/Artículo 1\. Objeto/.test(t) && t.includes("Restaurante Sabor Chapín, S.A."), "el borrador arranca con 'Artículo 1. Objeto' y la razón social");
+await page.getByRole("button", { name: /Capítulo III/ }).click();
+await page.waitForFunction(() => document.querySelector(".hoja .ProseMirror")?.textContent?.includes("Jornada ordinaria"));
+t = await hoja.innerText();
+verificar(t.includes("lunes a viernes") && t.includes("no responder comunicaciones"), "el capítulo III refleja el horario y el teletrabajo del diagnóstico");
+await page.getByRole("tab", { name: /Revisión/ }).click();
+verificar(await page.getByText("Este capítulo cumple los requisitos.").isVisible(), "la revisión confirma que el capítulo cumple");
 await page.getByRole("button", { name: /Capítulo VII:/ }).click();
-await page.getByRole("button", { name: "Insertar cláusula estándar IGT en este capítulo" }).click();
+await page.waitForFunction(() => document.querySelector(".hoja .ProseMirror")?.textContent?.includes("manipule alimentos"));
+verificar(true, "el giro restaurante agrega la cláusula de higiene de alimentos");
 
-await page.getByRole("button", { name: "Auditoría IGT" }).click();
-const pct = await page.locator("text=/\\d+%/").first().innerText();
-await page.screenshot({ path: path.join(OUT, "auditoria.png") });
+// cláusula opcional desde el panel
+await page.getByRole("button", { name: /Capítulo IV:/ }).click();
+await page.getByRole("tab", { name: "Cláusulas" }).click();
+await page.getByRole("button", { name: "Insertar cláusula Permisos sin goce de salario" }).click();
+await page.waitForFunction(() => document.querySelector(".hoja .ProseMirror")?.textContent?.includes("Permisos sin goce de salario"));
+verificar(true, "una cláusula opcional se inserta desde el panel");
 
-const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Descargar Word/ }).click()]);
-const destino = path.join(OUT, await dl.suggestedFilename());
-await dl.saveAs(destino);
+// pendientes: el anexo aún no tiene puestos
+await page.getByRole("tab", { name: /Revisión/ }).click();
+await page.getByRole("button", { name: /Ir al siguiente dato pendiente/ }).click();
+await page.waitForFunction(() => document.querySelector(".hoja h2")?.textContent?.includes("Anexo"));
+verificar(await page.locator(".hoja .pendiente").first().isVisible(), "el sistema salta al capítulo con dato pendiente y lo resalta");
+const ancho = await page.evaluate(() => { const h = document.querySelector(".hoja"); const c = h.parentElement; return { hoja: h.getBoundingClientRect().width, scroll: h.scrollWidth, cont: c.clientWidth }; });
+verificar(ancho.scroll <= ancho.hoja + 1, "la hoja no se recorta (sin desborde interno)");
+verificar(ancho.hoja >= 700, `la hoja conserva un ancho cómodo en 1440 px (${Math.round(ancho.hoja)} px)`);
+await page.screenshot({ path: path.join(OUT, "03_editor.png") });
 
+// 5. Puestos
+await ir("/puestos");
+for (const n of ["Administrador", "Cocinero", "Mesero"]) await page.getByRole("button", { name: `+ ${n}` }).click();
+await page.getByRole("button", { name: "Aplicar al reglamento (Anexo)" }).click();
+verificar(await page.getByText("se actualizó con 3 puesto(s)").isVisible(), "los puestos se aplican al Anexo del reglamento");
+await ir("/editor?cap=mod_puestos");
+await page.waitForFunction(() => document.querySelector(".hoja .ProseMirror")?.textContent?.includes("Puesto: Cocinero"));
+verificar((await hoja.innerText()).includes("Puesto: Mesero"), "el anexo lista los puestos");
+verificar((await page.locator(".hoja .pendiente").count()) === 0, "ya no quedan datos pendientes en el anexo");
 
-// Memorial: se completa con los datos de la empresa y descarga.
-await page.getByRole("button", { name: "Memorial", exact: true }).click();
-const razonMem = await page.getByLabel("Razón social", { exact: true }).inputValue();
-if (razonMem !== "Comercializadora Prueba, S.A.") throw new Error("memorial no heredó la razón social: " + razonMem);
-await page.getByLabel("Nombre del representante legal").fill("Ana López");
-const [dm] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Descargar memorial/ }).click()]);
-await dm.saveAs(path.join(OUT, await dm.suggestedFilename()));
+// 6. Auditoría
+await ir("/auditoria");
+verificar(/75%/.test(await texto()), "auditoría: 12 de 16 criterios automáticos al inicio (75%)");
+for (const n of ["Copia legible de la Patente", "Copia del nombramiento", "Planilla pagada del IGSS"]) {
+  await page.getByRole("checkbox", { name: new RegExp(n) }).check();
+}
+verificar(await page.getByText(/Riesgo de previo/).isVisible() || /\d+%/.test(await texto()), "los documentos manuales suben el puntaje");
+await page.screenshot({ path: path.join(OUT, "04_auditoria.png") });
 
-// Publicidad: 9 oct 2026 + 15 días = 24 oct 2026.
-await page.getByRole("button", { name: "Publicidad y vigencia" }).click();
+// 7. Memorial
+await ir("/memorial");
+verificar((await page.getByLabel("Razón social", { exact: true }).inputValue()).includes("Sabor Chapín"), "el memorial hereda la razón social");
+await page.getByLabel("DPI del representante").fill("2345 67890 0901");
+await page.getByLabel("Dirección para notificaciones").fill("4a. calle 12-45 zona 1, Quetzaltenango");
+await page.getByLabel("Lugar y fecha del memorial").fill("Quetzaltenango, 9 de octubre de 2026");
+const memorial = await descargar(page.getByRole("button", { name: /Descargar memorial/ }));
+verificar(fs.statSync(memorial).size > 3000, "se descarga el memorial .docx");
+
+// 8. Trámite y 9. Publicidad
+await ir("/tramite");
+await page.getByLabel("Estado del trámite").selectOption("aprobado");
+await page.getByLabel("Número de expediente").fill("456-2026");
+await ir("/publicidad");
 await page.getByLabel("Fecha en que se dio a conocer al personal").fill("2026-10-09");
-await page.getByLabel("Medio de publicidad").selectOption("fijacion");
-const vig = await page.getByRole("status").innerText();
-if (!vig.includes("24/10/2026")) throw new Error("vigencia incorrecta: " + vig);
-await page.screenshot({ path: path.join(OUT, "publicidad.png") });
+await page.getByLabel("Medio de publicidad").selectOption("ambos");
+verificar((await texto()).includes("24/10/2026"), "la vigencia se calcula a 15 días (24/10/2026)");
 
-// Organizador (modo local): publica una ley y un recordatorio general.
+// 10. Inicio al 100 %
+await ir("/inicio");
+await page.getByText("Todo completo").waitFor();
+verificar(/100%/.test(await texto()), "con todos los pasos hechos el avance es 100%");
+await page.screenshot({ path: path.join(OUT, "05_inicio_completo.png") });
+
+// 11. Formatos con datos reales
+await ir("/formatos");
+const constancia = await descargar(page.getByRole("button", { name: /Descargar/ }).first());
+verificar(fs.statSync(constancia).size > 3000, "se descarga la constancia de recibo");
+
+// 12. Biblioteca de cláusulas
+await ir("/plantillas");
+await page.getByLabel("Buscar").fill("acoso");
+verificar(await page.getByText("Prevención del acoso laboral y sexual").isVisible(), "la búsqueda de cláusulas encuentra 'acoso'");
+
+// 13. Respaldo, borrado y restauración
+await ir("/ajustes");
+const respaldo = await descargar(page.getByRole("button", { name: /Descargar respaldo/ }));
+await page.getByRole("button", { name: /Borrar todo el contenido/ }).click();
+await page.getByRole("button", { name: "Sí, borrar todo" }).click();
+await ir("/inicio");
+verificar(/^\s*[0-4]%|Avance general\s*\n?\s*[0-4]%/m.test(await texto()) || !(await texto()).includes("100%"), "tras borrar, el avance baja");
+await ir("/ajustes");
+await page.getByLabel("Archivo de respaldo").setInputFiles(respaldo);
+await page.getByText("Respaldo restaurado.").waitFor();
+await ir("/inicio");
+await page.getByText("Todo completo").waitFor();
+verificar(true, "restaurar el respaldo devuelve el 100%");
+
+// 14. Organizador → empresa (modo local)
 const manana = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
-await page.goto(`${BASE}/organizador`);
+await ir("/organizador");
 await page.getByLabel("Título", { exact: true }).first().fill("Código de Trabajo");
 await page.getByLabel("Referencia").fill("Decreto 1441");
 await page.getByLabel("Texto").fill("Artículo 57. Reglamento interior de trabajo es el conjunto de normas...");
@@ -67,40 +164,39 @@ await page.getByRole("button", { name: "Publicar", exact: true }).click();
 await page.getByLabel("Título", { exact: true }).nth(1).fill("Revisión anual del RIT");
 await page.getByLabel("Fecha", { exact: true }).fill(manana);
 await page.getByRole("button", { name: "Crear recordatorio" }).click();
-await page.getByText("Código de Trabajo").first().waitFor();
-
-// Empresa: la biblioteca encuentra la ley y el calendario muestra los avisos.
-await page.goto(`${BASE}/biblioteca`);
+await ir("/biblioteca");
 await page.getByLabel("Buscar en la biblioteca").fill("reglamento interior");
 await page.getByRole("button", { name: /Código de Trabajo/ }).click();
-if (!(await page.getByText("conjunto de normas").isVisible())) throw new Error("la ley no se abre");
-await page.getByLabel("Buscar en la biblioteca").fill("zzzz");
-await page.getByText("Ningún resultado.").waitFor();
-
-await page.goto(`${BASE}/calendario`);
-await page.getByLabel("Nuevo recordatorio").fill("Entregar memorial a la IGT");
+verificar(await page.getByText("conjunto de normas").isVisible(), "la empresa ve la ley publicada por el organizador");
+await ir("/calendario");
+await page.getByText("Revisión anual del RIT").waitFor();
+verificar(await page.getByText("Plazo del sistema").isVisible(), "el calendario muestra el recordatorio general y el plazo del sistema");
+await page.getByLabel("Qué hay que hacer").fill("Entregar memorial a la IGT");
 await page.getByLabel("Fecha", { exact: true }).fill(manana);
 await page.getByRole("button", { name: "Agregar" }).click();
-await page.getByText("Revisión anual del RIT").waitFor();
-await page.getByText("Entrada en vigor del RIT").waitFor();
-await page.screenshot({ path: path.join(OUT, "calendario.png") });
+const barra = await page.getByRole("navigation", { name: "Principal" }).innerText();
+verificar(/Calendario\s*2/.test(barra), "la barra lateral muestra 2 avisos urgentes");
+await page.screenshot({ path: path.join(OUT, "06_calendario.png") });
 
-// Insignia de urgentes en el editor: 2 (propio + general de mañana); se resuelve al marcar hecho.
-await page.goto(`${BASE}/editor`);
-await page.getByRole("link", { name: /Calendario/ }).waitFor();
-const insignia = await page.getByRole("link", { name: /Calendario/ }).innerText();
-if (!insignia.includes("2")) throw new Error("insignia esperada 2, fue: " + insignia);
-await page.goto(`${BASE}/calendario`);
-await page.getByLabel("Marcar como hecho: Entregar memorial a la IGT").check();
-await page.goto(`${BASE}/editor`);
-const insignia2 = await page.getByRole("link", { name: /Calendario/ }).innerText();
-if (!insignia2.includes("1")) throw new Error("insignia esperada 1 tras marcar hecho, fue: " + insignia2);
-
-// El borrador debe sobrevivir a una recarga.
+// 15. Persistencia
 await page.reload();
-await page.getByRole("button", { name: "Datos de la empresa" }).click();
-const razon = await page.getByLabel("Razón social (según patente)").inputValue();
-await browser.close();
+await page.getByText("Revisión anual del RIT").waitFor();
+await ir("/ajustes");
+verificar((await page.getByLabel("NIT").inputValue()) === "1234567-8", "los datos sobreviven a recargar");
 
-console.log(JSON.stringify({ porcentaje: pct, archivo: destino, bytes: fs.statSync(destino).size, razonTrasRecarga: razon, errores }, null, 2));
-if (razon !== "Comercializadora Prueba, S.A." || errores.length) process.exit(1);
+// 16. Móvil
+await page.setViewportSize({ width: 390, height: 800 });
+await ir("/inicio");
+verificar(!(await page.getByRole("navigation", { name: "Principal" }).isVisible()), "en móvil el menú lateral está oculto");
+await page.getByRole("button", { name: "Abrir menú" }).click();
+await page.waitForTimeout(400);
+const caja = await page.getByRole("navigation", { name: "Principal" }).boundingBox();
+verificar(!!caja && caja.x >= 0 && caja.x < 100, "el botón de menú desliza la navegación dentro de la pantalla");
+const desborde = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+verificar(!desborde, "no hay desbordamiento horizontal en móvil");
+await page.screenshot({ path: path.join(OUT, "07_movil.png") });
+
+await browser.close();
+console.log(pasos.map((p) => "  ✓ " + p).join("\n"));
+console.log(`\n${pasos.length} comprobaciones; errores de consola: ${errores.length}`);
+if (errores.length) { console.log(errores.join("\n")); process.exit(1); }

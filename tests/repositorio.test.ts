@@ -34,6 +34,7 @@ describe("repositorio Supabase", () => {
       empresa_datos: [{ razon_social: "Comercial X", nit: "123" }],
       checklist_igt: [{ manuales: { A1: true } }],
       publicaciones: [{ fecha: "2026-10-09", medio: "ambos" }],
+      rit_configuracion: [{ diagnostico: { giro: "restaurante" }, puestos: [{ id: "p1", nombre: "Cajero" }], tramite: { estado: "presentado" } }],
     });
     const s = await repositorioSupabase(db, "emp-1").cargar();
     expect(s.capitulos.mod_1).toEqual(doc);
@@ -41,6 +42,10 @@ describe("repositorio Supabase", () => {
     expect(s.empresa.departamento).toBe("Guatemala"); // valor por defecto conservado
     expect(s.manuales.A1).toBe(true);
     expect(s.publicacion).toEqual({ fecha: "2026-10-09", medio: "ambos" });
+    expect(s.diagnostico.giro).toBe("restaurante");
+    expect(s.diagnostico.tolerancia).toBe(10); // por defecto conservado
+    expect(s.puestos).toHaveLength(1);
+    expect(s.tramite.estado).toBe("presentado");
   });
 
   it("guarda con empresa_id y clave de conflicto, y solo lo que cambió", async () => {

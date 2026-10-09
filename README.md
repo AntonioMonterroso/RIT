@@ -4,19 +4,31 @@ Sistema web para redactar, auditar y presentar el **Reglamento Interior de Traba
 empresa guatemalteca. Un despacho organizador administra la biblioteca legal y los recordatorios
 sin acceso al contenido de ninguna empresa.
 
+## Qué hace
+
+Guía a la empresa de punta a punta, en este orden (`/inicio` muestra el avance de cada paso):
+
+1. **Diagnóstico**: giro, horario, turnos, teletrabajo, custodia de bienes… Clasifica la jornada (diurna, mixta, nocturna) y avisa si el horario excede el límite legal.
+2. **Redacción**: genera un borrador de ~57 artículos adaptado al diagnóstico, en un editor tipo Word con guía legal por capítulo, revisión automática y biblioteca de 55+ cláusulas.
+3. **Puestos**: anexo con responsabilidades y bienes en custodia, con sugerencias por giro.
+4. **Auditoría IGT**: 16 criterios; los de contenido se verifican leyendo el texto.
+5. **Memorial** a la IGT, **trámite** (presentado, previo, aprobado) y **publicidad y vigencia** (15 días).
+6. **Formatos**: constancia de recibo, acta de divulgación, comunicado al personal y solicitud de reformas.
+7. **Calendario** con plazos, recordatorios propios y avisos generales; **biblioteca legal**.
+8. **Ajustes**: datos de la empresa y respaldo/restauración.
+
+Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+
 ## Estado
 
 | Pieza | Estado |
 | --- | --- |
-| Constructor tipo Word (hoja carta, cinta de formato, tablas, saltos de página) | Hecho (`/editor`) |
-| Exportación a `.docx` real | Hecho |
-| Auditoría IGT (16 criterios, puntaje y semáforo) | Hecho |
-| Fechas legales (feriados de Guatemala, 15 días de publicidad) | Hecho, con pruebas |
-| Memorial (.docx) y publicidad/vigencia (Art. 59) | Hecho |
-| Esquema de base de datos con RLS | Hecho y probado en Postgres 16 local (`npm run test:db`); falta probarlo en un proyecto Supabase real |
-| Biblioteca legal, calendario con recordatorios propios y panel del organizador | Hecho y probado en modo local (navegador) |
-| Cuentas y guardado en Supabase | Escrito; probado con dobles y Postgres local, **no contra un proyecto Supabase real** |
-| Cobro con Stripe | Pendiente |
+| Diagnóstico, generador de borrador, editor, puestos, auditoría, memorial, trámite, publicidad, formatos, calendario, biblioteca, ajustes | Hecho y probado de punta a punta en modo local (`tests/e2e`) |
+| Panel del organizador (leyes y recordatorios generales) | Hecho, modo local |
+| Esquema de base de datos con RLS, una sola migración | Probado en Postgres 16 local (`npm run test:db`); **no** en un proyecto Supabase real |
+| Cuentas y guardado en Supabase | Escrito; probado con dobles y Postgres local, **no** contra Supabase real |
+| Cobro con Stripe, correos de aviso | Pendiente |
+| Revisión legal de los textos | **Pendiente (imprescindible antes de vender)** |
 
 Sin variables de entorno el borrador se guarda en el navegador. Para activar cuentas:
 
@@ -40,5 +52,5 @@ PGHOST=... PGPORT=... PGUSER=postgres tests/db/run.sh   # pruebas de aislamiento
 
 ## Aviso legal
 
-Los textos estándar de `content/` provienen del kit EGE y **deben ser revisados por un abogado**
+Los textos de `content/` provienen del kit EGE y de cláusulas redactadas a partir de los artículos que cita, y **deben ser revisados por un abogado**
 antes de ofrecer el sistema comercialmente. El sistema entrega plantillas y cálculos; no es asesoría legal.
