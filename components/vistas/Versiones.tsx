@@ -8,7 +8,8 @@ import { eliminarVersion, guardarVersion, MAX_VERSIONES, restaurarVersion, resum
 const cuando = (iso: string) => new Date(iso).toLocaleString("es-GT", { dateStyle: "medium", timeStyle: "short" });
 
 export default function Versiones() {
-  const { estado, actualizar } = useRit();
+  const { estado, actualizar, permitido } = useRit();
+  const puede = permitido("editar");
   const [etiqueta, setEtiqueta] = useState("");
   const [aviso, setAviso] = useState("");
   const [confirmar, setConfirmar] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export default function Versiones() {
       <Tarjeta titulo="Guardar una versión ahora">
         <form onSubmit={guardar} className="flex flex-wrap items-end gap-3">
           <div className="min-w-56 flex-1"><Texto etiqueta="Nombre de la versión" value={etiqueta} onChange={(e) => setEtiqueta(e.target.value)} placeholder="Ej. Antes de presentar a la IGT" /></div>
-          <Boton type="submit">Guardar versión</Boton>
+          <Boton type="submit" disabled={!puede}>Guardar versión</Boton>
         </form>
         {aviso && <Aviso tono="ok" className="mt-4">{aviso}</Aviso>}
       </Tarjeta>
@@ -42,13 +43,13 @@ export default function Versiones() {
                 {confirmar === v.id ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-warn">Se reemplaza el texto actual (se respalda antes).</span>
-                    <Boton pequeno onClick={() => { actualizar((s) => restaurarVersion(s, v.id)); setConfirmar(null); setAviso(`Se restauró «${v.etiqueta}».`); }}>Sí, restaurar</Boton>
+                    <Boton pequeno disabled={!puede} onClick={() => { actualizar((s) => restaurarVersion(s, v.id)); setConfirmar(null); setAviso(`Se restauró «${v.etiqueta}».`); }}>Sí, restaurar</Boton>
                     <Boton pequeno variante="fantasma" onClick={() => setConfirmar(null)}>Cancelar</Boton>
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <Boton pequeno variante="secundario" onClick={() => setConfirmar(v.id)} aria-label={`Restaurar ${v.etiqueta}`}>Restaurar</Boton>
-                    <Boton pequeno variante="fantasma" onClick={() => actualizar((s) => eliminarVersion(s, v.id))} aria-label={`Eliminar ${v.etiqueta}`}>Eliminar</Boton>
+                    <Boton pequeno variante="secundario" disabled={!puede} onClick={() => setConfirmar(v.id)} aria-label={`Restaurar ${v.etiqueta}`}>Restaurar</Boton>
+                    <Boton pequeno variante="fantasma" disabled={!puede} onClick={() => actualizar((s) => eliminarVersion(s, v.id))} aria-label={`Eliminar ${v.etiqueta}`}>Eliminar</Boton>
                   </div>
                 )}
               </li>

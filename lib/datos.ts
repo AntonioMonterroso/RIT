@@ -3,6 +3,8 @@ import {
   retirarLey, retirarRecordatorio, type EmpresaResumen, type Ley, type Recordatorio,
 } from "@/lib/biblioteca";
 import { cargarBorrador } from "@/lib/almacen";
+import type { Novedad } from "@/lib/novedades";
+import { leerPlanLocal } from "@/lib/plan";
 import { clienteSupabase } from "@/lib/supabase/cliente";
 
 /**
@@ -20,10 +22,22 @@ export interface Datos {
   publicarRecordatorio(r: { titulo: string; detalle: string; fecha: string }): Promise<void>;
   retirarRecordatorio(id: string): Promise<void>;
   listarEmpresas(): Promise<EmpresaResumen[]>;
+  listarNovedades(): Promise<Novedad[]>;
+  publicarNovedad(n: Pick<Novedad, "titulo" | "resumen" | "capitulo" | "texto_sugerido" | "vigente_desde">): Promise<void>;
+  retirarNovedad(id: string): Promise<void>;
+  /** Estado de la suscripción de la empresa actual. */
+  miPlan(): Promise<{ estado: string; pruebaHasta: string | null }>;
 }
 
 const K_LEYES = "rit:leyes:v1";
 const K_RECS = "rit:recordatorios-globales:v1";
+const K_NOVS = "rit:novedades:v1";
+
+/** Novedades de ejemplo para la demostración local. Se identifican como ejemplo en el título. */
+const NOVEDADES_EJEMPLO: Novedad[] = [
+  { id: "ejemplo-teletrabajo", titulo: "Ejemplo: regular el trabajo a distancia", resumen: "Ejemplo de demostración de cómo llega una novedad. Si su empresa permite trabajo remoto, conviene dejarlo regulado en el reglamento.", capitulo: "mod_3", texto_sugerido: "El trabajo a distancia, cuando la empresa lo autorice por escrito, se regirá por el horario y las obligaciones de este reglamento. El trabajador conservará todos los derechos y obligaciones de su relación laboral y la empresa definirá los medios de comunicación y de control de la jornada.", vigente_desde: null, publicada_en: "2026-09-01T00:00:00.000Z" },
+  { id: "ejemplo-acoso", titulo: "Ejemplo: prevención del acoso laboral", resumen: "Ejemplo de demostración. Una cláusula de prevención y canal de denuncias fortalece el reglamento.", capitulo: "mod_7", texto_sugerido: "Queda prohibido todo acto de acoso o maltrato hacia compañeros o subordinados. Cualquier trabajador podrá presentar su queja por escrito ante el área de personal, la cual será atendida con reserva y sin represalias.", vigente_desde: null, publicada_en: "2026-09-15T00:00:00.000Z" },
+];
 
 function leer<T>(clave: string): T[] {
   try { return JSON.parse(localStorage.getItem(clave) ?? "[]") as T[]; } catch { return []; }
@@ -51,6 +65,17 @@ export const datosLocal: Datos = {
     const e = cargarBorrador().empresa;
     return [{ id: "local", nombre: e.nombre_comercial || e.razon_social || "Mi empresa", estado_suscripcion: "prueba", creada_en: ahora() }];
   },
+  async listarNovedades() {
+    let guardadas: Novedad[] = [];
+    try { const raw = localStorage.getItem(K_NOVS); guardadas = raw === null ? NOVEDADES_EJEMPLO : (JSON.parse(raw) as Novedad[]); } catch { guardadas = NOVEDADES_EJEMPLO; }
+    return guardadas.sort((a, b) => b.publicada_en.localeCompare(a.publicada_en));
+  },
+  async publicarNovedad(n) {
+    const actuales = await datosLocal.listarNovedades();
+    escribir(K_NOVS, [...actuales, { id: id(), ...n, publicada_en: ahora() }]);
+  },
+  async retirarNovedad(i) { escribir(K_NOVS, (await datosLocal.listarNovedades()).filter((x) => x.id !== i)); },
+  async miPlan() { const p = leerPlanLocal(); return { estado: p.estado, pruebaHasta: p.pruebaHasta }; },
 };
 
 export function datosSupabase(): Datos {
@@ -68,6 +93,24 @@ export function datosSupabase(): Datos {
     publicarRecordatorio: async (r) => { await publicarRecordatorio(db, r); },
     retirarRecordatorio: async (i) => { await retirarRecordatorio(db, i); },
     listarEmpresas: () => listarEmpresas(db),
+    listarNovedades: async () => {
+      const r = await db.from("novedades_legales").select("*").order("publicada_en", { ascending: false });
+      if (r.error) throw new Error(`No se pudieron cargar las novedades: ${r.error.message}`);
+      return (r.data ?? []) as Novedad[];
+    },
+    publicarNovedad: async (n) => {
+      const r = await db.from("novedades_legales").insert({ titulo: n.titulo, resumen: n.resumen, capitulo: n.capitulo, texto_sugerido: n.texto_sugerido, vigente_desde: n.vigente_desde });
+      if (r.error) throw new Error(`No se pudo publicar la novedad: ${r.error.message}`);
+    },
+    retirarNovedad: async (i) => {
+      const r = await db.from("novedades_legales").delete().eq("id", i);
+      if (r.error) throw new Error(`No se pudo retirar la novedad: ${r.error.message}`);
+    },
+    miPlan: async () => {
+      const r = await db.from("empresas").select("estado_suscripcion, prueba_hasta").maybeSingle();
+      const d = r.data as { estado_suscripcion: string; prueba_hasta: string | null } | null;
+      return { estado: d?.estado_suscripcion ?? "inactiva", pruebaHasta: d?.prueba_hasta ?? null };
+    },
   };
 }
 

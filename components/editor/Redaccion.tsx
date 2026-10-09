@@ -25,7 +25,8 @@ type Panel = "guia" | "revision" | "clausulas";
 const VACIO: Nodo = { type: "doc", content: [{ type: "paragraph" }] };
 
 export default function Redaccion() {
-  const { estado, actualizar, listo } = useRit();
+  const { estado, actualizar, listo, permitido } = useRit();
+  const puedeEditar = permitido("editar");
   const [cap, setCap] = useState<CapituloKey>("mod_1");
   const [panel, setPanel] = useState<Panel>("guia");
   const [confirmar, setConfirmar] = useState(false);
@@ -50,6 +51,9 @@ export default function Redaccion() {
       actualizar((s) => ({ ...s, capitulos: { ...s.capitulos, [key]: json } }));
     },
   });
+
+  // En solo lectura (rol de lectura o plan vencido) la hoja no se puede escribir.
+  useEffect(() => { editor?.setEditable(puedeEditar, false); }, [editor, puedeEditar]);
 
   // Capítulo inicial desde ?cap=
   useEffect(() => {

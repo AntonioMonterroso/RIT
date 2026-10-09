@@ -13,6 +13,9 @@ export default function Acceso() {
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
   const [empresa, setEmpresa] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [conCodigo, setConCodigo] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [ocupado, setOcupado] = useState(false);
 
@@ -50,6 +53,17 @@ export default function Acceso() {
     if (!db) return;
     setOcupado(true); setMensaje("");
     const { error } = await db.rpc("crear_empresa", { p_nombre: empresa });
+    setOcupado(false);
+    if (error) return setMensaje(error.message);
+    router.replace("/inicio");
+  }
+
+  async function unirse(e: React.FormEvent) {
+    e.preventDefault();
+    const db = clienteSupabase();
+    if (!db) return;
+    setOcupado(true); setMensaje("");
+    const { error } = await db.rpc("aceptar_invitacion", { p_codigo: codigo, p_nombre: nombre });
     setOcupado(false);
     if (error) return setMensaje(error.message);
     router.replace("/inicio");
@@ -94,7 +108,21 @@ export default function Acceso() {
         </form>
       )}
 
-      {paso === "empresa" && (
+      {paso === "empresa" && conCodigo && (
+        <form onSubmit={unirse} className="space-y-4 rounded-lg border vidrio p-6">
+          <p className="text-sm text-muted">Escriba el código que le dio el administrador de su empresa.</p>
+          <label className="block text-sm font-semibold">Código de invitación
+            <input required value={codigo} onChange={(e) => setCodigo(e.target.value)} className={`${campo} uppercase`} autoComplete="off" />
+          </label>
+          <label className="block text-sm font-semibold">Su nombre
+            <input required minLength={2} value={nombre} onChange={(e) => setNombre(e.target.value)} className={campo} autoComplete="name" />
+          </label>
+          <button disabled={ocupado} className="w-full rounded degradado-boton px-4 py-2 text-sm font-semibold disabled:opacity-60">Unirme a mi empresa</button>
+          <button type="button" onClick={() => { setConCodigo(false); setMensaje(""); }} className="w-full text-sm font-semibold text-brand-700 underline">Voy a registrar una empresa nueva</button>
+        </form>
+      )}
+
+      {paso === "empresa" && !conCodigo && (
         <form onSubmit={crearEmpresa} className="space-y-4 rounded-lg border vidrio p-6">
           <p className="text-sm text-muted">Último paso: indique el nombre de su empresa.</p>
           <label className="block text-sm font-semibold">Nombre de la empresa
@@ -103,6 +131,7 @@ export default function Acceso() {
           <button disabled={ocupado} className="w-full rounded degradado-boton px-4 py-2 text-sm font-semibold disabled:opacity-60">
             Continuar
           </button>
+          <button type="button" onClick={() => { setConCodigo(true); setMensaje(""); }} className="w-full text-sm font-semibold text-brand-700 underline">Tengo un código de invitación</button>
         </form>
       )}
 

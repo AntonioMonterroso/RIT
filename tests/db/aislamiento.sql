@@ -201,3 +201,22 @@ reset role;
 select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
 select pg_temp.falla($q$select aceptar_invitacion('ABC', 'x')$q$, 'quien ya tiene empresa no acepta invitaciones');
 reset role;
+
+-- ───────── Prueba vencida: solo lectura; novedades legales ─────────
+select pg_temp.como('e0000000-0000-0000-0000-00000000000e');
+select pg_temp.afirma((select prueba_hasta > now() + interval '13 days' from empresas), 'la prueba dura 14 días');
+reset role;
+update empresas set prueba_hasta = now() - interval '1 hour' where nombre = 'Mi Empresa Nueva';
+select pg_temp.como('e0000000-0000-0000-0000-00000000000e');
+select pg_temp.afirma((select count(*) from rit_documentos) = 1, 'prueba vencida: sigue leyendo su RIT');
+select pg_temp.falla($q$insert into rit_documentos(empresa_id, capitulo) values (mi_empresa(), 'mod_2')$q$, 'prueba vencida: no escribe');
+select pg_temp.falla($q$select crear_invitacion('lector')$q$, 'prueba vencida: no invita');
+reset role;
+
+select pg_temp.como('c0000000-0000-0000-0000-00000000000c');
+insert into novedades_legales(titulo, resumen, capitulo, texto_sugerido) values ('Reforma X', 'Resumen', 'mod_4', 'Texto sugerido');
+reset role;
+select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
+select pg_temp.afirma((select count(*) from novedades_legales) = 1, 'empresa lee novedades legales');
+select pg_temp.falla($q$insert into novedades_legales(titulo, resumen) values ('x','y')$q$, 'empresa no publica novedades');
+reset role;

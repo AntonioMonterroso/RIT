@@ -6,6 +6,7 @@ import { ESTADO_INICIAL } from "@/lib/almacen";
 function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
   const upserts: { tabla: string; fila: Record<string, unknown>; conflicto?: string }[] = [];
   const borrados: { tabla: string; id: unknown }[] = [];
+  const inserts: { tabla: string; fila: Record<string, unknown> }[] = [];
   const db = {
     from(tabla: string) {
       const datos = filas[tabla] ?? [];
@@ -15,6 +16,7 @@ function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
         maybeSingle: async () => ({ data: datos[0] ?? null, error: null }),
         then: (res: (v: unknown) => unknown) => res({ data: datos, error: null }),
         delete: () => ({ eq: async (_c: string, id: unknown) => { borrados.push({ tabla, id }); return { error: null }; } }),
+        insert: async (fila: Record<string, unknown>) => { inserts.push({ tabla, fila }); return { error: null }; },
         upsert: async (fila: Record<string, unknown>, o?: { onConflict?: string }) => {
           upserts.push({ tabla, fila, conflicto: o?.onConflict });
           return { error: null };
@@ -23,7 +25,7 @@ function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
       return consulta;
     },
   } as unknown as ClienteDatos;
-  return { db, upserts, borrados };
+  return { db, upserts, borrados, inserts };
 }
 
 const doc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "hola" }] }] };
@@ -115,5 +117,34 @@ describe("repositorio Supabase", () => {
 
     await repo.guardar({ ...s0, versiones: [] });
     expect(borrados.filter((b) => b.tabla === "rit_versiones").map((b) => b.id).sort()).toEqual(["v1", "v2"]);
+  });
+
+  it("las aprobaciones solo se insertan, una vez, y nunca se reescriben", async () => {
+    const previa = { id: "a1", etiqueta: "v1", huella: "a".repeat(64), nombre: "Ana", cargo: "G", nota: "", creada_en: "2026-10-01T10:00:00Z" };
+    const { db, upserts, inserts } = falso({ aprobaciones: [previa] });
+    const repo = repositorioSupabase(db, "emp-1");
+    const s0 = await repo.cargar();
+    expect(s0.aprobaciones).toEqual([{ id: "a1", etiqueta: "v1", huella: "a".repeat(64), nombre: "Ana", cargo: "G", nota: "", fecha: "2026-10-01T10:00:00Z" }]);
+
+    await repo.guardar(s0);
+    expect(inserts).toHaveLength(0); // la ya guardada no se vuelve a enviar
+
+    const nueva = { id: "a2", etiqueta: "v2", huella: "b".repeat(64), nombre: "Luis", cargo: "", nota: "", fecha: "2026-10-09T10:00:00Z" };
+    const s1 = { ...s0, aprobaciones: [nueva, ...s0.aprobaciones] };
+    await repo.guardar(s1);
+    await repo.guardar(s1);
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].fila).toMatchObject({ empresa_id: "emp-1", id: "a2", huella: "b".repeat(64), creada_en: "2026-10-09T10:00:00Z" });
+    expect(upserts.some((u) => u.tabla === "aprobaciones")).toBe(false);
+  });
+
+  it("guarda la rutina y las novedades dentro de la configuración", async () => {
+    const { db, upserts } = falso({ rit_configuracion: [{ rutina: { "2026-10": { hechos: { planilla: true }, cerrada: null } }, novedades: { n1: { estado: "aplicada", fecha: "2026-10-05T00:00:00Z" } } }] });
+    const repo = repositorioSupabase(db, "emp-1");
+    const s = await repo.cargar();
+    expect(s.rutina["2026-10"].hechos.planilla).toBe(true);
+    expect(s.novedades.n1.estado).toBe("aplicada");
+    await repo.guardar({ ...s, rutina: {} });
+    expect(upserts.find((u) => u.tabla === "rit_configuracion")!.fila).toMatchObject({ rutina: {}, novedades: s.novedades });
   });
 });

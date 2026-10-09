@@ -2,6 +2,7 @@ import { AlignmentType, Document, Packer, Paragraph, Table, TableCell, TableRow,
 import { fechaVigencia } from "@/lib/fechas";
 import { falta } from "@/content/plantillas";
 import type { EstadoRit } from "@/lib/almacen";
+import { estadoAprobacion } from "@/lib/aprobaciones";
 
 const F = "Times New Roman";
 const run = (text: string, o: { bold?: boolean; size?: number } = {}) => new TextRun({ text, font: F, size: o.size ?? 24, bold: o.bold });
@@ -105,6 +106,29 @@ export const FORMATOS: Formato[] = [
       new Paragraph({ spacing: { before: 900 }, alignment: AlignmentType.CENTER, children: [run("f. ______________________________")] }),
       new Paragraph({ alignment: AlignmentType.CENTER, children: [run(falta(e.memorial.rep_nombre || e.empresa.representante_legal, "representante legal"), { bold: true })] }),
     ], "Solicitud de reformas al RIT"),
+  },
+  {
+    id: "aprobacion", titulo: "Acta de aprobación interna del Reglamento",
+    uso: "Constancia de que la gerencia o el revisor aprobó el texto, con la huella digital del texto aprobado para comprobar que no cambió.",
+    cuando: "Antes de presentar el reglamento a la IGT, y cada vez que lo reforme.",
+    generar: (e) => {
+      const a = estadoAprobacion(e);
+      const ult = a.estado === "sin_aprobar" ? null : a.ultima;
+      return documento([
+        p(nombreEmpresa(e).toUpperCase(), { centro: true, negrita: true }),
+        p("ACTA DE APROBACIÓN INTERNA DEL REGLAMENTO INTERIOR DE TRABAJO", { centro: true, negrita: true }),
+        p(ult
+          ? `${falta(ult.nombre, "nombre")}${ult.cargo ? `, en su calidad de ${ult.cargo},` : ""} hace constar que revisó y aprobó el texto del Reglamento Interior de Trabajo de ${nombreEmpresa(e)} el ${largo(ult.fecha.slice(0, 10))}, bajo la referencia «${ult.etiqueta}».`
+          : "[COMPLETAR: registre primero una aprobación en la sección Aprobaciones]"),
+        p(ult ? `Huella digital (SHA-256) del texto aprobado: ${ult.huella}` : ""),
+        p(ult && a.estado === "cambios" ? "ATENCIÓN: el texto cambió después de esta aprobación; la huella ya no corresponde al texto actual." : ""),
+        p(ult?.nota ? `Observaciones: ${ult.nota}` : ""),
+        p("Esta constancia es un registro interno de la empresa. No constituye firma electrónica avanzada ni sustituye la aprobación de la Inspección General de Trabajo."),
+        new Paragraph({ spacing: { before: 900 }, alignment: AlignmentType.CENTER, children: [run("f. ______________________________")] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [run(ult ? ult.nombre : "[COMPLETAR: aprobador]", { bold: true })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [run(ult?.cargo ?? "")] }),
+      ], "Acta de aprobación interna");
+    },
   },
 ];
 

@@ -336,3 +336,7 @@ body > * { position: relative; z-index: 1; }
   .capitulo-doc { break-before: page; }
   main > div { padding: 0 !important; }
 }
+
+/* Solo lectura (rol de lectura o prueba vencida): los campos de captura no responden.
+   Descargar, ver y navegar siguen funcionando. Los marcados con data-lectura-ok siempre funcionan. */
+[data-lectura="1"] :is(input, textarea, select):not([data-lectura-ok], [type="file"]) { pointer-events: none; opacity: 0.7; }

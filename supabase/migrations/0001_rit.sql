@@ -11,6 +11,7 @@ create table public.empresas (
   estado_suscripcion text not null default 'inactiva'
     check (estado_suscripcion in ('prueba', 'activa', 'morosa', 'cancelada', 'inactiva')),
   stripe_customer_id text unique,
+  prueba_hasta timestamptz,    -- fin del periodo de prueba; vencido, la empresa queda en solo lectura
   creada_en timestamptz not null default now()
 );
 
@@ -59,7 +60,10 @@ $$;
 
 create or replace function public.suscripcion_activa(eid uuid) returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from empresas where id = eid and estado_suscripcion in ('activa', 'prueba'));
+  select exists (select 1 from empresas where id = eid and (
+    estado_suscripcion = 'activa'
+    or (estado_suscripcion = 'prueba' and (prueba_hasta is null or prueba_hasta > now()))
+  ));
 $$;
 
 -- ───────── Datos PRIVADOS de cada empresa ─────────
@@ -117,6 +121,8 @@ create table public.rit_configuracion (
   diagnostico jsonb not null default '{}'::jsonb,
   puestos jsonb not null default '[]'::jsonb,
   tramite jsonb not null default '{}'::jsonb,
+  rutina jsonb not null default '{}'::jsonb,       -- rutina mensual de cumplimiento
+  novedades jsonb not null default '{}'::jsonb,    -- novedades legales aplicadas o descartadas
   actualizado_en timestamptz not null default now()
 );
 
@@ -133,6 +139,17 @@ create table public.biblioteca_leyes (
   titulo text not null,
   referencia text,            -- p. ej. "Decreto 1441", "Acuerdo Gubernativo 229-2014"
   contenido text not null,
+  publicada_en timestamptz not null default now()
+);
+
+-- Novedades legales: cambios de ley o criterio que afectan el reglamento. Las empresas leen; solo el organizador escribe.
+create table public.novedades_legales (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null,
+  resumen text not null,
+  capitulo text,               -- clave del capítulo afectado (p. ej. 'mod_4')
+  texto_sugerido text not null default '',
+  vigente_desde date,
   publicada_en timestamptz not null default now()
 );
 
@@ -155,6 +172,7 @@ alter table public.empresa_datos enable row level security;
 alter table public.publicaciones enable row level security;
 alter table public.rit_configuracion enable row level security;
 alter table public.biblioteca_leyes enable row level security;
+alter table public.novedades_legales enable row level security;
 alter table public.recordatorios_globales enable row level security;
 
 -- Perfiles: cada usuario ve el suyo. Las altas se hacen con service_role (sin política de escritura).
@@ -185,6 +203,10 @@ end $$;
 -- Compartidos: lectura para cualquier usuario autenticado; escritura solo el organizador.
 create policy biblioteca_leer on public.biblioteca_leyes for select to authenticated using (true);
 create policy biblioteca_escribir on public.biblioteca_leyes for all
+  using (public.es_organizador()) with check (public.es_organizador());
+
+create policy novedades_leer on public.novedades_legales for select to authenticated using (true);
+create policy novedades_escribir on public.novedades_legales for all
   using (public.es_organizador()) with check (public.es_organizador());
 
 create policy recordatorios_globales_leer on public.recordatorios_globales for select to authenticated using (true);
@@ -307,7 +329,7 @@ begin
     raise exception 'El usuario ya pertenece a una empresa';
   end if;
   if length(btrim(coalesce(p_nombre, ''))) < 2 then raise exception 'Nombre de empresa inválido'; end if;
-  insert into empresas (nombre, estado_suscripcion) values (btrim(p_nombre), 'prueba') returning id into nueva;
+  insert into empresas (nombre, estado_suscripcion, prueba_hasta) values (btrim(p_nombre), 'prueba', now() + interval '14 days') returning id into nueva;
   insert into perfiles (user_id, rol, empresa_id) values (auth.uid(), 'empresa_admin', nueva);
   insert into empresa_datos (empresa_id, razon_social) values (nueva, btrim(p_nombre));
   return nueva;

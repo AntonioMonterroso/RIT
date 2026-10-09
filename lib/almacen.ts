@@ -1,6 +1,7 @@
 import type { CapituloKey } from "@/content/capitulos";
 import type { Nodo } from "@/lib/docx";
 import { MEMORIAL_INICIAL, type DatosMemorial } from "@/lib/memorial";
+import type { Aprobacion } from "@/lib/aprobaciones";
 import { DIAGNOSTICO_INICIAL, TRAMITE_INICIAL, type Diagnostico, type Puesto, type Tramite } from "@/lib/tipos";
 
 export interface Empresa {
@@ -15,6 +16,11 @@ export interface RecordatorioPropio { id: string; titulo: string; fecha: string;
 
 export interface Version { id: string; etiqueta: string; fecha: string; capitulos: EstadoRit["capitulos"] }
 
+/** Rutina mensual: por mes ("2026-10"), qué tareas se marcaron y cuándo se cerró el mes. */
+export type Rutina = Record<string, { hechos: Record<string, boolean>; cerrada: string | null }>;
+/** Novedades legales ya atendidas por la empresa. */
+export type NovedadesAtendidas = Record<string, { estado: "aplicada" | "descartada"; fecha: string }>;
+
 export interface EstadoRit {
   empresa: Empresa;
   capitulos: Partial<Record<CapituloKey, Nodo>>;
@@ -26,6 +32,9 @@ export interface EstadoRit {
   diagnostico: Diagnostico;
   puestos: Puesto[];
   tramite: Tramite;
+  aprobaciones: Aprobacion[];
+  rutina: Rutina;
+  novedades: NovedadesAtendidas;
   actualizado: string | null;
 }
 
@@ -40,6 +49,9 @@ export const ESTADO_INICIAL: EstadoRit = {
   diagnostico: DIAGNOSTICO_INICIAL,
   puestos: [],
   tramite: TRAMITE_INICIAL,
+  aprobaciones: [],
+  rutina: {},
+  novedades: {},
   actualizado: null,
 };
 
@@ -57,6 +69,9 @@ export function fusionar(p: Partial<EstadoRit>): EstadoRit {
     puestos: p.puestos ?? [],
     recordatorios: p.recordatorios ?? [],
     versiones: p.versiones ?? [],
+    aprobaciones: p.aprobaciones ?? [],
+    rutina: p.rutina ?? {},
+    novedades: p.novedades ?? {},
     capitulos: p.capitulos ?? {},
     manuales: p.manuales ?? {},
   };

@@ -9,6 +9,9 @@ import { obligatorio } from "@/lib/diagnostico";
 import { avanceGeneral, externosAuditoria, pasos, siguientePaso } from "@/lib/progreso";
 import { capitulosQueCumplen, pendientesTotales } from "@/lib/revision";
 import { CAPITULOS } from "@/content/capitulos";
+import { pendientes } from "@/lib/novedades";
+import { hechasEn, mesDe, racha, TAREAS_RUTINA } from "@/lib/rutina";
+import { salud } from "@/lib/salud";
 
 const fmt = (iso: string) => iso.split("-").reverse().join("/");
 
@@ -24,7 +27,7 @@ function Indicador({ etiqueta, valor, sub, tono = "marca" }: { etiqueta: string;
 }
 
 export default function Inicio() {
-  const { estado, avisos, urgentes, listo } = useRit();
+  const { estado, avisos, urgentes, listo, novedades } = useRit();
   const lista = pasos(estado);
   const avance = avanceGeneral(lista);
   const siguiente = siguientePaso(lista);
@@ -34,6 +37,8 @@ export default function Inicio() {
   const nombre = estado.empresa.nombre_comercial || estado.empresa.razon_social;
   const cumplen = capitulosQueCumplen(estado.capitulos);
   const pend = pendientesTotales(estado.capitulos);
+  const sal = salud(estado, novedades);
+  const porAtender = pendientes(estado, novedades).length;
   const aud = auditar(estado.capitulos, estado.manuales, externosAuditoria(estado));
 
   return (
@@ -73,6 +78,15 @@ export default function Inicio() {
             <Indicador etiqueta="Por completar" valor={String(pend)} sub="datos [COMPLETAR]" tono={pend === 0 ? "ok" : "warn"} />
             <Indicador etiqueta="Avisos urgentes" valor={String(urgentes)} sub="vencidos o en 7 días" tono={urgentes === 0 ? "ok" : "warn"} />
           </div>
+
+          <Tarjeta titulo="Mantenimiento del reglamento" descripcion="Un reglamento aprobado se mantiene: novedades de ley, revisión mensual y aprobaciones al día."
+            acciones={<Link href="/cumplimiento" className="text-sm font-semibold text-brand-700 hover:underline">Ver detalle</Link>}>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Link href="/cumplimiento" className="vidrio rounded-xl p-4 hover:border-brand-600/50"><p className="etiqueta-mono text-[10px] text-muted">Salud</p><p className={`mt-1 text-3xl font-semibold ${sal.puntos >= 80 ? "text-ok" : "text-warn"}`}>{sal.puntos}%</p><p className="text-xs text-muted">{sal.indicadores.filter((i) => !i.ok).length} control(es) por atender</p></Link>
+              <Link href="/novedades" className="vidrio rounded-xl p-4 hover:border-brand-600/50"><p className="etiqueta-mono text-[10px] text-muted">Novedades legales</p><p className={`mt-1 text-3xl font-semibold ${porAtender ? "text-warn" : "text-ok"}`}>{porAtender}</p><p className="text-xs text-muted">{porAtender ? "por atender" : "al día"}</p></Link>
+              <Link href="/cumplimiento" className="vidrio rounded-xl p-4 hover:border-brand-600/50"><p className="etiqueta-mono text-[10px] text-muted">Rutina del mes</p><p className="mt-1 text-3xl font-semibold text-brand-700">{hechasEn(estado, mesDe())}/{TAREAS_RUTINA.length}</p><p className="text-xs text-muted">{racha(estado)} {racha(estado) === 1 ? "mes seguido" : "meses seguidos"}</p></Link>
+            </div>
+          </Tarjeta>
 
           {!estado.diagnostico.completo && (
             <Aviso tono="info" titulo="Empiece por el diagnóstico">

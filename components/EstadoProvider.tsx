@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { ESTADO_INICIAL, type EstadoRit } from "@/lib/almacen";
 import { datos } from "@/lib/datos";
 import { repositorioLocal, type Repositorio } from "@/lib/repositorio";
-import { abrirRepositorio } from "@/lib/sesion";
+import { abrirSesion, fijarRolDemo } from "@/lib/sesion";
+import { puede, type Accion, type Rol } from "@/lib/equipo";
+import { calcularPlan, type InfoPlan } from "@/lib/plan";
+import type { Novedad } from "@/lib/novedades";
 import { construirAvisos, contarUrgentes, type Aviso } from "@/lib/avisos";
 import type { Recordatorio } from "@/lib/biblioteca";
 
@@ -14,11 +17,24 @@ type Guardado = "" | "guardando" | "ok" | "error";
 interface Contexto {
   estado: EstadoRit;
   /** Aplica un cambio y lo guarda automáticamente. */
-  actualizar: (f: (s: EstadoRit) => EstadoRit) => void;
+  actualizar: (f: (s: EstadoRit) => EstadoRit, accion?: Accion) => void;
   listo: boolean;
   guardado: Guardado;
   avisos: Aviso[];
   urgentes: number;
+  rol: Rol;
+  /** Sin cuentas: el rol se puede cambiar para ver cómo trabaja cada persona del equipo. */
+  local: boolean;
+  cambiarRolDemo: (r: Rol) => void;
+  plan: InfoPlan;
+  refrescarPlan: () => Promise<void>;
+  novedades: Novedad[];
+  /** Verdadero si la persona puede hacer `accion` ahora (según su rol y el plan). */
+  permitido: (accion: Accion) => boolean;
+  /** Por qué no puede modificar, o null si puede. */
+  motivoLectura: string | null;
+  /** Mensaje breve cuando se intentó un cambio bloqueado. */
+  bloqueo: string;
 }
 
 const Ctx = createContext<Contexto | null>(null);
@@ -35,6 +51,11 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
   const [listo, setListo] = useState(false);
   const [guardado, setGuardado] = useState<Guardado>("");
   const [generales, setGenerales] = useState<Recordatorio[]>([]);
+  const [rol, setRol] = useState<Rol>("empresa_admin");
+  const [local, setLocal] = useState(true);
+  const [plan, setPlan] = useState<InfoPlan>(() => calcularPlan("prueba", null));
+  const [novedades, setNovedades] = useState<Novedad[]>([]);
+  const [bloqueo, setBloqueo] = useState("");
   const repo = useRef<Repositorio>(repositorioLocal);
   const ultimo = useRef(estado);
   const sucio = useRef(false);
@@ -43,10 +64,14 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     let vivo = true;
     (async () => {
-      const r = await abrirRepositorio();
-      if (!r) return router.replace("/acceso");
+      const ses = await abrirSesion();
+      if (!ses) return router.replace("/acceso");
+      const r = ses.repo;
       repo.current = r;
+      setRol(ses.rol); setLocal(ses.local);
       datos().listarRecordatorios().then((g) => vivo && setGenerales(g)).catch(() => {});
+      datos().listarNovedades().then((n) => vivo && setNovedades(n)).catch(() => {});
+      datos().miPlan().then((p) => vivo && setPlan(calcularPlan(p.estado, p.pruebaHasta))).catch(() => {});
       try {
         const e = await r.cargar();
         if (vivo) { setEstado(e); setListo(true); }
@@ -57,9 +82,26 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
     return () => { vivo = false; };
   }, [router]);
 
-  const actualizar = useCallback((f: (s: EstadoRit) => EstadoRit) => {
+  const motivoLectura = plan.soloLectura
+    ? "Su periodo de prueba terminó. Puede ver y descargar todo; para modificar, active el plan."
+    : rol === "lector" ? "Su rol es de lectura: puede consultar y descargar." : null;
+  const permitido = useCallback((a: Accion) => !plan.soloLectura && puede(rol, a), [plan.soloLectura, rol]);
+
+  const actualizar = useCallback((f: (s: EstadoRit) => EstadoRit, accion: Accion = "editar") => {
+    if (!permitido(accion)) {
+      setBloqueo(plan.soloLectura ? "Plan vencido: puede ver y descargar, pero no modificar." : "Su rol no permite esta acción.");
+      return;
+    }
+    setBloqueo("");
     sucio.current = true;
     setEstado((s) => f(s));
+  }, [permitido, plan.soloLectura]);
+
+  const cambiarRolDemo = useCallback((r: Rol) => { fijarRolDemo(r); setRol(r); setBloqueo(""); }, []);
+  const refrescarPlan = useCallback(async () => {
+    const p = await datos().miPlan();
+    setPlan(calcularPlan(p.estado, p.pruebaHasta));
+    setBloqueo("");
   }, []);
 
   // Guardado automático con espera de 600 ms. Solo guarda si el usuario cambió algo.
@@ -84,8 +126,11 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
 
   const avisos = useMemo(() => construirAvisos(estado, generales), [estado, generales]);
   const valor = useMemo<Contexto>(
-    () => ({ estado, actualizar, listo, guardado, avisos, urgentes: contarUrgentes(avisos) }),
-    [estado, actualizar, listo, guardado, avisos],
+    () => ({
+      estado, actualizar, listo, guardado, avisos, urgentes: contarUrgentes(avisos),
+      rol, local, cambiarRolDemo, plan, refrescarPlan, novedades, permitido, motivoLectura, bloqueo,
+    }),
+    [estado, actualizar, listo, guardado, avisos, rol, local, cambiarRolDemo, plan, refrescarPlan, novedades, permitido, motivoLectura, bloqueo],
   );
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }

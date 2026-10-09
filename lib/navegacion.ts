@@ -31,9 +31,20 @@ export const RECURSOS: Destino[] = [
   { href: "/ayuda", texto: "Ayuda", icono: "ayuda", claves: "preguntas frecuentes glosario dudas" },
 ];
 
+export const CUMPLIMIENTO: Destino[] = [
+  { href: "/novedades", texto: "Novedades legales", icono: "novedades", claves: "cambios ley actualizar reforma aplicar" },
+  { href: "/cumplimiento", texto: "Rutina y bitácora", icono: "rutina", claves: "mensual salud informe historial racha revisión anual" },
+  { href: "/aprobaciones", texto: "Aprobaciones", icono: "aprobacion", claves: "acta aprobar constancia revisor huella firma interna" },
+];
+
+export const CUENTA: Destino[] = [
+  { href: "/equipo", texto: "Equipo y roles", icono: "equipo", claves: "invitar usuarios editor revisor lector permisos" },
+  { href: "/plan", texto: "Plan y suscripción", icono: "plan", claves: "pago mensualidad prueba precio activar" },
+];
+
 export const AJUSTES: Destino = { href: "/ajustes", texto: "Ajustes y respaldo", icono: "ajustes", claves: "empresa datos copia seguridad restaurar" };
 
-export const TODOS: Destino[] = [INICIO, ...PROCESO, ...RECURSOS, AJUSTES];
+export const TODOS: Destino[] = [INICIO, ...PROCESO, ...CUMPLIMIENTO, ...RECURSOS, ...CUENTA, AJUSTES];
 
 /** Minúsculas y sin acentos, para comparar texto en el buscador. */
 export const normalizar = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();

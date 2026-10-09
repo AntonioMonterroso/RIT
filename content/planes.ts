@@ -20,7 +20,7 @@ export const PLANES: Plan[] = [
   {
     id: "empresa", nombre: "Empresa", para: "Una empresa que necesita su RIT aprobado y vigente.",
     precio: 450, unidad: "por mes", destacado: true,
-    incluye: ["Diagnóstico y borrador de ~57 artículos", "Editor tipo Word y exportación .docx", "Auditoría de 16 criterios IGT", "Memorial, formatos y trámite", "Calendario de plazos y biblioteca legal", "Actualizaciones de las plantillas"],
+    incluye: ["Diagnóstico y borrador de ~57 artículos", "Editor tipo Word y exportación .docx", "Auditoría de 16 criterios IGT", "Memorial, formatos y trámite", "Calendario de plazos y biblioteca legal", "Novedades legales con aplicación guiada", "Rutina mensual, bitácora e informe de cumplimiento", "Equipo con roles y aprobaciones con huella digital"],
   },
   {
     id: "despacho", nombre: "Despacho", para: "Consultoras y escuelas que atienden a varias empresas.",
@@ -32,4 +32,22 @@ export const PLANES: Plan[] = [
     precio: null, unidad: "a la medida",
     incluye: ["Varias razones sociales y sedes", "Cláusulas y formatos propios", "Acompañamiento en la implementación"],
   },
+];
+
+/** Siempre disponible, aunque el plan no esté activo: el trabajo de la empresa nunca queda retenido. */
+export const SIEMPRE_DISPONIBLE = [
+  "Ver todo su reglamento y su vista previa",
+  "Descargar el RIT en Word, los formatos y el memorial",
+  "Descargar el respaldo completo de sus datos",
+  "Consultar la biblioteca legal",
+];
+
+/** Lo que el plan activo mantiene vivo. */
+export const REQUIERE_PLAN = [
+  "Editar y regenerar el reglamento",
+  "Novedades legales con su impacto en su texto",
+  "Rutina mensual, bitácora e informe de cumplimiento",
+  "Aprobaciones internas y trabajo en equipo con roles",
+  "Versiones, importación y plantillas",
+  "Recordatorios y avisos de plazos",
 ];

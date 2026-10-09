@@ -9,12 +9,13 @@ const e = {
   empresa: { ...ESTADO_INICIAL.empresa, razon_social: "Comercial Prueba, S.A.", representante_legal: "Ana López", departamento: "Guatemala" },
   publicacion: { fecha: "2026-10-09", medio: "ambos" as const },
   tramite: { ...ESTADO_INICIAL.tramite, expediente: "123-2026" },
+  aprobaciones: [{ id: "a1", etiqueta: "v1", huella: "a".repeat(64), nombre: "Ana López", cargo: "Gerente", nota: "", fecha: "2026-10-09T10:00:00Z" }],
 };
 
 describe("formatos descargables", () => {
-  it("hay cuatro formatos con id único", () => {
-    expect(FORMATOS).toHaveLength(4);
-    expect(new Set(FORMATOS.map((f) => f.id)).size).toBe(4);
+  it("hay cinco formatos con id único", () => {
+    expect(FORMATOS).toHaveLength(5);
+    expect(new Set(FORMATOS.map((f) => f.id)).size).toBe(5);
   });
 
   it("todos generan un .docx con los datos de la empresa", async () => {

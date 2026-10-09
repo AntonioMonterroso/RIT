@@ -21,7 +21,7 @@ const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width:
 const page = await ctx.newPage();
 const errores = [];
 page.on("pageerror", (e) => errores.push(e.message));
-page.on("console", (m) => m.type() === "error" && errores.push(m.text()));
+page.on("console", (m) => m.type() === "error" && errores.push(m.text() + " " + (m.location().url ?? "")));
 // Navega y espera a que el estado de la empresa termine de cargar (el avance deja de mostrar «…»).
 const ir = async (r) => {
   await page.goto(url(r));
@@ -284,7 +284,7 @@ const manana = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
 await ir("/organizador");
 await page.getByLabel("Título", { exact: true }).first().fill("Código de Trabajo");
 await page.getByLabel("Referencia").fill("Decreto 1441");
-await page.getByLabel("Texto").fill("Artículo 57. Reglamento interior de trabajo es el conjunto de normas...");
+await page.getByLabel("Texto", { exact: true }).fill("Artículo 57. Reglamento interior de trabajo es el conjunto de normas...");
 await page.getByRole("button", { name: "Publicar", exact: true }).click();
 await page.getByLabel("Título", { exact: true }).nth(1).fill("Revisión anual del RIT");
 await page.getByLabel("Fecha", { exact: true }).fill(manana);
@@ -303,7 +303,99 @@ const barra = await page.getByRole("navigation", { name: "Principal" }).innerTex
 verificar(/Calendario\s*2/.test(barra), "la barra lateral muestra 2 avisos urgentes");
 await page.screenshot({ path: path.join(OUT, "06_calendario.png") });
 
+// 14b. Retención: novedades legales, aprobaciones, rutina y bitácora
+await ir("/organizador");
+await page.getByLabel("Título", { exact: true }).nth(2).fill("Prohibición de acoso en el trabajo");
+await page.getByLabel("Capítulo que afecta").selectOption("mod_7");
+await page.getByLabel("Resumen para la empresa").fill("Conviene prohibir expresamente el acoso y habilitar una vía de queja.");
+await page.getByLabel("Texto sugerido (un artículo)").fill("Queda prohibido todo acto de acoso hacia compañeros o subordinados. La queja se presentará por escrito al área de personal y se atenderá con reserva.");
+await page.getByRole("button", { name: "Publicar novedad" }).click();
+await ir("/novedades");
+verificar(await page.getByRole("heading", { name: "Prohibición de acoso en el trabajo" }).isVisible(), "la empresa ve la novedad publicada");
+verificar(/Novedades legales\s*3/.test(await page.getByRole("navigation", { name: "Principal" }).innerText()), "la barra lateral cuenta 3 novedades por atender");
+const tarjetaNov = page.locator("li").filter({ has: page.getByRole("heading", { name: "Prohibición de acoso en el trabajo" }) });
+await tarjetaNov.getByRole("button", { name: "Ver texto sugerido" }).click();
+await page.screenshot({ path: path.join(OUT, "11_novedades.png"), fullPage: true });
+await tarjetaNov.getByRole("button", { name: "Aplicar a mi reglamento" }).click();
+await page.getByText(/Se agregó a su reglamento/).waitFor();
+await ir("/versiones");
+verificar(await page.getByText(/Antes de novedad: Prohibición de acoso/).isVisible(), "aplicar una novedad guarda antes una versión de respaldo");
+await ir("/calendario");
+verificar(await page.getByText(/Presentar a la IGT la reforma: Prohibición de acoso/).isVisible(), "aplicar una novedad crea el recordatorio para la IGT");
+await ir("/vista-previa");
+verificar(await page.getByText(/Queda prohibido todo acto de acoso/).isVisible(), "el artículo sugerido quedó en el reglamento");
+
+// Aprobación interna
+await ir("/aprobaciones");
+await page.getByLabel("Nombre de quien aprueba").fill("Ana López");
+await page.getByLabel("Cargo").fill("Gerente general");
+await page.getByRole("button", { name: "Aprobar el texto actual" }).click();
+await page.getByText("El texto vigente está aprobado").waitFor();
+verificar(/SHA-256 [0-9a-f]{64}/i.test(await texto()), "la aprobación queda con la huella SHA-256 del texto");
+await page.screenshot({ path: path.join(OUT, "12_aprobaciones.png"), fullPage: true });
+const acta = await descargar(page.getByRole("button", { name: /Descargar acta de aprobación/ }));
+verificar(acta.endsWith(".docx"), "se descarga el acta de aprobación (.docx)");
+await ir("/novedades");
+const tarjetaTele = page.locator("li").filter({ has: page.getByRole("heading", { name: /regular el trabajo a distancia/ }) });
+await tarjetaTele.getByRole("button", { name: "Ver texto sugerido" }).click();
+await tarjetaTele.getByRole("button", { name: "Aplicar a mi reglamento" }).click();
+await ir("/aprobaciones");
+verificar(await page.getByText("El texto cambió después de la última aprobación").isVisible(), "si el texto cambia, la aprobación avisa que ya no coincide");
+
+// Rutina mensual, salud e informe
+await ir("/cumplimiento");
+verificar(/Salud del reglamento/.test(await texto()), "la página de cumplimiento muestra la salud del reglamento");
+const casillas = page.locator('input[type="checkbox"]');
+const n = await casillas.count();
+for (let i = 0; i < n; i++) await casillas.nth(i).check();
+await page.getByText("Mes cerrado").waitFor();
+verificar(/1 mes seguido/.test(await texto()), "cerrar la rutina del mes inicia la racha");
+verificar(/Rutina de .* completada/.test(await texto()) && /Novedad aplicada/.test(await texto()) && /Aprobación interna de Ana López/.test(await texto()), "la bitácora reúne rutina, novedades y aprobaciones");
+await page.screenshot({ path: path.join(OUT, "13_cumplimiento.png"), fullPage: true });
+const informe = await descargar(page.getByRole("button", { name: /Descargar informe/ }));
+verificar(informe.endsWith(".docx"), "se descarga el informe de cumplimiento (.docx)");
+
+// Equipo: un lector solo mira y descarga
+await ir("/equipo");
+await page.screenshot({ path: path.join(OUT, "14_equipo.png"), fullPage: true });
+await page.getByLabel("Estoy trabajando como").selectOption("lector");
+await ir("/editor");
+verificar(await page.locator('.ProseMirror[contenteditable="false"]').count() === 1, "el lector no puede escribir en el editor");
+verificar(/Su rol es de lectura/.test(await page.locator("main").innerText()), "el lector ve el aviso de solo lectura");
+await ir("/aprobaciones");
+verificar(/no permite aprobar/.test(await texto()), "el lector no puede aprobar");
+await descargar(page.getByRole("button", { name: /Descargar RIT/ }));
+verificar(true, "el lector sí puede descargar el RIT");
+await ir("/equipo");
+await page.getByLabel("Estoy trabajando como").selectOption("editor");
+await ir("/aprobaciones");
+verificar(/no permite aprobar/.test(await texto()), "quien redacta no aprueba su propio texto");
+await ir("/equipo");
+await page.getByLabel("Estoy trabajando como").selectOption("empresa_admin");
+
+// Plan: tras la prueba, solo lectura pero todo se puede descargar
+await ir("/plan");
+verificar(/Periodo de prueba: 1[34] días/.test(await texto()), "la prueba empieza con 14 días");
+await page.screenshot({ path: path.join(OUT, "15_plan.png"), fullPage: true });
+await page.getByRole("button", { name: "Simular fin de la prueba" }).click();
+await page.getByText("Periodo de prueba terminado: solo lectura").waitFor();
+await ir("/editor");
+verificar(await page.locator('.ProseMirror[contenteditable="false"]').count() === 1, "con la prueba vencida el editor queda en solo lectura");
+await ir("/versiones");
+verificar(await page.getByRole("button", { name: "Guardar versión" }).isDisabled(), "con la prueba vencida no se puede guardar una versión");
+verificar(await page.getByText(/Su periodo de prueba terminó/).isVisible(), "un aviso explica el solo lectura y lleva al plan");
+await ir("/plan");
+const respaldoVencido = await descargar(page.getByRole("button", { name: /Descargar mi respaldo completo/ }));
+verificar(respaldoVencido.endsWith(".json"), "con la prueba vencida el respaldo completo sigue disponible");
+await descargar(page.getByRole("button", { name: /Descargar RIT/ }));
+verificar(true, "con la prueba vencida el RIT sigue descargable");
+await page.getByRole("button", { name: "Activar plan (demostración)" }).click();
+await page.getByText("Todo el sistema está disponible.").waitFor();
+await ir("/editor");
+verificar(await page.locator('.ProseMirror[contenteditable="true"]').count() === 1, "al activar el plan el editor vuelve a ser editable");
+
 // 15. Persistencia
+await ir("/calendario");
 await page.reload();
 await page.getByText("Revisión anual del RIT").waitFor();
 await ir("/ajustes");

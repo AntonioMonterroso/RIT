@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { datos } from "@/lib/datos";
 import type { EmpresaResumen, Ley, Recordatorio } from "@/lib/biblioteca";
+import { CAPITULOS, type CapituloKey } from "@/content/capitulos";
+import type { Novedad } from "@/lib/novedades";
 import { clienteSupabase, supabaseConfigurado } from "@/lib/supabase/cliente";
 import TemaToggle from "./TemaToggle";
-import { Aviso, AreaTexto, Boton, Insignia, Pagina, Tarjeta, Texto } from "./ui";
+import { Aviso, AreaTexto, Boton, Insignia, Pagina, Seleccion, Tarjeta, Texto } from "./ui";
 
 const fmt = (iso: string) => iso.split("-").reverse().join("/");
 const TONO_ESTADO = { prueba: "info", activa: "ok", morosa: "warn", cancelada: "danger", inactiva: "neutro" } as const;
@@ -15,6 +17,8 @@ export default function PanelOrganizador() {
   const router = useRouter();
   const [leyes, setLeyes] = useState<Ley[]>([]);
   const [recs, setRecs] = useState<Recordatorio[]>([]);
+  const [novs, setNovs] = useState<Novedad[]>([]);
+  const [nov, setNov] = useState({ titulo: "", resumen: "", capitulo: "" as CapituloKey | "", texto_sugerido: "" });
   const [empresas, setEmpresas] = useState<EmpresaResumen[]>([]);
   const [error, setError] = useState("");
   const [ley, setLey] = useState({ titulo: "", referencia: "", contenido: "" });
@@ -23,8 +27,8 @@ export default function PanelOrganizador() {
   const refrescar = useCallback(async () => {
     try {
       const d = datos();
-      const [l, r, e] = await Promise.all([d.listarLeyes(), d.listarRecordatorios(), d.listarEmpresas()]);
-      setLeyes(l); setRecs(r); setEmpresas(e); setError("");
+      const [l, r, e, n] = await Promise.all([d.listarLeyes(), d.listarRecordatorios(), d.listarEmpresas(), d.listarNovedades()]);
+      setLeyes(l); setRecs(r); setEmpresas(e); setNovs(n); setError("");
     } catch (x) { setError((x as Error).message); }
   }, []);
 
@@ -81,6 +85,24 @@ export default function PanelOrganizador() {
             </ul>
           </Tarjeta>
         </div>
+
+        <Tarjeta titulo="Novedades legales" descripcion="Cambios que afectan los reglamentos. Cada empresa ve qué capítulo toca y decide si aplicar el texto sugerido.">
+          <form className="grid gap-3 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); void accion(async () => { await datos().publicarNovedad({ titulo: nov.titulo, resumen: nov.resumen, capitulo: nov.capitulo || null, texto_sugerido: nov.texto_sugerido, vigente_desde: null }); setNov({ titulo: "", resumen: "", capitulo: "", texto_sugerido: "" }); }); }}>
+            <Texto etiqueta="Título" required value={nov.titulo} onChange={(e) => setNov({ ...nov, titulo: e.target.value })} />
+            <Seleccion etiqueta="Capítulo que afecta" value={nov.capitulo} onChange={(e) => setNov({ ...nov, capitulo: e.target.value as CapituloKey | "" })}>
+              <option value="">Informativa (sin texto sugerido)</option>
+              {CAPITULOS.map((c) => <option key={c.key} value={c.key}>{c.titulo}</option>)}
+            </Seleccion>
+            <div className="md:col-span-2"><AreaTexto etiqueta="Resumen para la empresa" required rows={3} value={nov.resumen} onChange={(e) => setNov({ ...nov, resumen: e.target.value })} /></div>
+            <div className="md:col-span-2"><AreaTexto etiqueta="Texto sugerido (un artículo)" rows={4} value={nov.texto_sugerido} onChange={(e) => setNov({ ...nov, texto_sugerido: e.target.value })} /></div>
+            <div className="md:col-span-2"><Boton type="submit">Publicar novedad</Boton></div>
+          </form>
+          <ul className="mt-4 divide-y divide-line text-sm">
+            {novs.map((n) => (
+              <li key={n.id} className="flex items-center justify-between py-2"><span>{n.titulo}</span><Boton variante="fantasma" pequeno onClick={() => void accion(() => datos().retirarNovedad(n.id))}>Retirar</Boton></li>
+            ))}
+          </ul>
+        </Tarjeta>
 
         <Tarjeta titulo="Empresas" descripcion="Solo se muestran el nombre y el estado de la suscripción." relleno={false}>
           <table className="w-full text-left text-sm">

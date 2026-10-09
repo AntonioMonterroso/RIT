@@ -9,7 +9,8 @@ import { generarDocxBlob } from "@/lib/docx";
 import { clienteSupabase, supabaseConfigurado } from "@/lib/supabase/cliente";
 import { pasos, avanceGeneral } from "@/lib/progreso";
 import { pendientesTotales } from "@/lib/revision";
-import { AJUSTES, INICIO, PROCESO, RECURSOS, type Destino } from "@/lib/navegacion";
+import { pendientes as novedadesPendientes } from "@/lib/novedades";
+import { AJUSTES, CUENTA, CUMPLIMIENTO, INICIO, PROCESO, RECURSOS, type Destino } from "@/lib/navegacion";
 import { useRit } from "./EstadoProvider";
 import { Icono } from "./Iconos";
 import TemaToggle from "./TemaToggle";
@@ -19,7 +20,8 @@ import { Boton, Insignia } from "./ui";
 export default function Shell({ children }: { children: React.ReactNode }) {
   const ruta = usePathname();
   const router = useRouter();
-  const { estado, guardado, urgentes, listo } = useRit();
+  const { estado, guardado, urgentes, listo, novedades, plan, motivoLectura, bloqueo } = useRit();
+  const porAtender = listo ? novedadesPendientes(estado, novedades).length : 0;
   const [abierto, setAbierto] = useState(false);
   const [paleta, setPaleta] = useState(false);
   // En el editor la barra lateral se reduce a íconos para dar espacio a la hoja.
@@ -61,6 +63,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </span>
           <span className={`flex-1 ${compacto ? "md:sr-only" : ""}`}>{d.texto}</span>
           {d.href === "/calendario" && urgentes > 0 && <span className={compacto ? "md:hidden" : ""}><Insignia tono="warn">{urgentes}</Insignia></span>}
+          {d.href === "/novedades" && porAtender > 0 && <span className={compacto ? "md:hidden" : ""}><Insignia tono="info">{porAtender}</Insignia></span>}
         </Link>
       </li>
     );
@@ -82,8 +85,10 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <nav aria-label="Principal" className="mt-3 flex-1 overflow-y-auto pb-3">
           <ul>{enlace(INICIO)}</ul>
           {grupo("Proceso", PROCESO)}
+          {grupo("Cumplimiento", CUMPLIMIENTO)}
           {grupo("Recursos", RECURSOS)}
-          <ul className="mt-5">{enlace(AJUSTES)}</ul>
+          {grupo("Cuenta", CUENTA)}
+          <ul className="mt-2">{enlace(AJUSTES)}</ul>
         </nav>
         <div className={`rounded-xl border border-line bg-hondo p-3 ${compacto ? "md:hidden" : ""}`}>
           <div className="flex items-baseline justify-between"><span className="etiqueta-mono text-[10px] text-muted">Avance</span><span className="etiqueta-mono text-sm font-bold text-brand-700">{listo ? `${avance}%` : "…"}</span></div>
@@ -108,11 +113,21 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             {guardado === "error" && <><span className="h-1.5 w-1.5 rounded-full bg-danger" />No se pudo guardar</>}
           </span>
           <button onClick={() => setPaleta(true)} aria-label="Buscar" className="grid h-9 w-9 place-items-center rounded-xl border border-line text-brand-600 sm:hidden"><Icono nombre="diagnostico" className="h-4 w-4" /></button>
+          {plan.fase === "prueba" && <Link href="/plan" className="hidden rounded-xl border border-line bg-campo px-3 py-1.5 text-xs font-semibold text-brand-700 hover:border-brand-600/50 md:block">Prueba: {plan.diasRestantes} {plan.diasRestantes === 1 ? "día" : "días"}</Link>}
+          {plan.fase === "vencida" && <Link href="/plan" className="hidden rounded-xl border border-warn-line bg-warn-bg px-3 py-1.5 text-xs font-semibold text-warn md:block">Solo lectura · Activar plan</Link>}
           <TemaToggle />
           <Boton pequeno onClick={() => void descargar()}>Descargar RIT (.docx)</Boton>
           {supabaseConfigurado && <Boton variante="fantasma" pequeno onClick={salir}>Salir</Boton>}
         </header>
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1" data-lectura={listo && motivoLectura ? "1" : undefined}>
+          {listo && (motivoLectura || bloqueo) && (
+            <div role="status" className="no-imprimir mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-warn-line bg-warn-bg px-4 py-3 text-sm text-warn">
+              <span className="min-w-0 flex-1">{bloqueo || motivoLectura}</span>
+              {plan.soloLectura && ruta !== "/plan" && <Link href="/plan" className="font-semibold underline">Ver plan</Link>}
+            </div>
+          )}
+          {children}
+        </main>
       </div>
       <Paleta abierta={paleta} onCerrar={() => setPaleta(false)} acciones={acciones} />
     </div>
