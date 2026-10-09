@@ -3,6 +3,7 @@
 import { saveAs } from "file-saver";
 import { useRit } from "@/components/EstadoProvider";
 import { Boton, Pagina, Tarjeta } from "@/components/ui";
+import { nombreArchivo } from "@/lib/archivo";
 import { FORMATOS, generarFormatoBlob } from "@/lib/formatos";
 
 export default function Formatos() {
@@ -14,7 +15,7 @@ export default function Formatos() {
           <Tarjeta key={f.id} titulo={f.titulo}>
             <p className="text-sm">{f.uso}</p>
             <p className="mt-2 text-sm text-muted"><b className="text-ink">Cuándo:</b> {f.cuando}</p>
-            <Boton className="mt-4" variante="secundario" onClick={async () => saveAs(await generarFormatoBlob(f, estado), `${f.id}_${(estado.empresa.nombre_comercial || estado.empresa.razon_social || "empresa").replace(/\s+/g, "_")}.docx`)}>Descargar (.docx)</Boton>
+            <Boton className="mt-4" variante="secundario" onClick={async () => saveAs(await generarFormatoBlob(f, estado), nombreArchivo(`${f.id} ${estado.empresa.nombre_comercial || estado.empresa.razon_social || "empresa"}`, "docx"))}>Descargar (.docx)</Boton>
           </Tarjeta>
         ))}
       </div>

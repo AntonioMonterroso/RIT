@@ -5,6 +5,7 @@ import { saveAs } from "file-saver";
 import { useRit } from "@/components/EstadoProvider";
 import { Aviso, Boton, Pagina, Tarjeta, Texto } from "@/components/ui";
 import { ESTADO_INICIAL, type Empresa } from "@/lib/almacen";
+import { nombreArchivo } from "@/lib/archivo";
 import { exportarRespaldo, importarRespaldo } from "@/lib/respaldo";
 import { supabaseConfigurado } from "@/lib/supabase/cliente";
 import { aplicarPaleta, aplicarTema, PALETAS, paletaActual, temaActual, type Paleta, type Tema } from "@/lib/tema";
@@ -65,7 +66,7 @@ export default function Ajustes() {
       <Tarjeta titulo="Copia de seguridad" descripcion={supabaseConfigurado ? "Sus datos están en su cuenta; igual puede guardar una copia." : "Sus datos viven solo en este navegador. Descargue una copia con frecuencia."}>
         {msg && <Aviso tono={msg.tono} className="mb-4">{msg.texto}</Aviso>}
         <div className="flex flex-wrap gap-3">
-          <Boton onClick={() => saveAs(new Blob([exportarRespaldo(estado)], { type: "application/json" }), `respaldo_RIT_${new Date().toISOString().slice(0, 10)}.json`)}>Descargar respaldo (.json)</Boton>
+          <Boton onClick={() => saveAs(new Blob([exportarRespaldo(estado)], { type: "application/json" }), nombreArchivo(`respaldo RIT ${new Date().toISOString().slice(0, 10)}`, "json"))}>Descargar respaldo (.json)</Boton>
           <Boton variante="secundario" onClick={() => archivo.current?.click()}>Restaurar desde un respaldo…</Boton>
           <input ref={archivo} type="file" accept="application/json,.json" className="hidden" aria-label="Archivo de respaldo" onChange={(e) => void importar(e.target.files?.[0])} />
         </div>

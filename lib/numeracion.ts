@@ -25,3 +25,16 @@ export function renumerar(capitulos: Capitulos): { capitulos: Capitulos; total: 
   }
   return { capitulos: salida, total: n };
 }
+
+/** Mayor número de artículo usado en el reglamento (en encabezados o al inicio de un párrafo). */
+export function maxArticulo(capitulos: Capitulos): number {
+  let max = 0;
+  for (const c of CAPITULOS) {
+    for (const n of capitulos[c.key]?.content ?? []) {
+      const t = n.content?.[0]?.text ?? "";
+      const m = t.match(/^Art[ií]culo\s+(\d+)/i);
+      if (m) max = Math.max(max, Number(m[1]));
+    }
+  }
+  return max;
+}

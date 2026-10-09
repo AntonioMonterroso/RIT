@@ -3,6 +3,7 @@
 import { saveAs } from "file-saver";
 import { useRit } from "@/components/EstadoProvider";
 import { Aviso, Boton, Pagina, Tarjeta, Texto } from "@/components/ui";
+import { nombreArchivo } from "@/lib/archivo";
 import { generarMemorialBlob, type DatosMemorial } from "@/lib/memorial";
 import { memorialCompleto } from "@/lib/progreso";
 
@@ -34,7 +35,7 @@ export default function Memorial() {
     <Pagina
       titulo="Memorial de solicitud"
       descripcion="Escrito dirigido al Inspector General de Trabajo para pedir la aprobación del reglamento. Los datos de la empresa se completan solos."
-      acciones={<Boton onClick={async () => saveAs(await generarMemorialBlob(m), `MEMORIAL_IGT_${(m.razon_social || "empresa").replace(/\s+/g, "_")}.docx`)}>Descargar memorial (.docx)</Boton>}
+      acciones={<Boton onClick={async () => saveAs(await generarMemorialBlob(m), nombreArchivo(`Memorial IGT ${m.razon_social || "empresa"}`, "docx"))}>Descargar memorial (.docx)</Boton>}
     >
       {!completo && <Aviso tono="warn">Faltan datos obligatorios. Puede descargar el memorial, pero los campos vacíos saldrán como [MARCADOR].</Aviso>}
       <Tarjeta>

@@ -33,7 +33,7 @@ export default function Diagnostico() {
   return (
     <Pagina
       titulo="Diagnóstico de la empresa"
-      descripcion="Con estas respuestas el sistema elige y adapta las cláusulas de su reglamento: jornada, puntualidad, seguridad, faltas propias de su giro y más."
+      descripcion="Con estas respuestas el sistema elige y adapta las cláusulas de su reglamento: jornada, puntualidad, seguridad, faltas propias de su giro y más. ¿Ya tiene un reglamento? Use «Importar RIT» en el menú."
     >
       <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-5">

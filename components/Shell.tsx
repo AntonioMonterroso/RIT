@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { saveAs } from "file-saver";
+import { nombreArchivo } from "@/lib/archivo";
 import { generarDocxBlob } from "@/lib/docx";
 import { clienteSupabase, supabaseConfigurado } from "@/lib/supabase/cliente";
 import { pasos, avanceGeneral } from "@/lib/progreso";
@@ -29,7 +30,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const descargar = async () => {
     const pend = pendientesTotales(estado.capitulos);
     if (pend > 0 && !window.confirm(`Hay ${pend} dato(s) marcados como [COMPLETAR] en el reglamento. ¿Descargar de todos modos?`)) return;
-    saveAs(await generarDocxBlob({ empresa: estado.empresa, capitulos: estado.capitulos }), `RIT_${nombre.replace(/\s+/g, "_")}.docx`);
+    saveAs(await generarDocxBlob({ empresa: estado.empresa, capitulos: estado.capitulos }), nombreArchivo(`RIT ${nombre}`, "docx"));
   };
   const salir = async () => { await clienteSupabase()?.auth.signOut(); router.replace("/acceso"); };
 

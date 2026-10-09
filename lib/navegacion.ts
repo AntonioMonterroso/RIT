@@ -12,6 +12,7 @@ export const INICIO: Destino = { href: "/inicio", texto: "Inicio", icono: "inici
 
 export const PROCESO: Destino[] = [
   { href: "/diagnostico", texto: "Diagnóstico", icono: "diagnostico", claves: "giro horario jornada generar borrador" },
+  { href: "/importar", texto: "Importar RIT", icono: "importar", claves: "subir word existente documento pegar brechas" },
   { href: "/puestos", texto: "Puestos", icono: "puestos", claves: "anexo responsabilidades custodia" },
   { href: "/editor", texto: "Redacción", icono: "redaccion", claves: "editor capítulos artículos escribir" },
   { href: "/vista-previa", texto: "Vista previa", icono: "vista", claves: "documento completo índice imprimir pdf" },

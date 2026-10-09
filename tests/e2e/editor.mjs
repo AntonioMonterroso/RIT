@@ -253,10 +253,25 @@ verificar(!(await page.getByRole("dialog", { name: "Buscador de comandos" }).isV
 // 13. Respaldo, borrado y restauración
 await ir("/ajustes");
 const respaldo = await descargar(page.getByRole("button", { name: /Descargar respaldo/ }));
+const ritDocx = await descargar(page.getByRole("button", { name: /Descargar RIT/ }));
 await page.getByRole("button", { name: /Borrar todo el contenido/ }).click();
 await page.getByRole("button", { name: "Sí, borrar todo" }).click();
 await ir("/inicio");
 verificar(/^\s*[0-4]%|Avance general\s*\n?\s*[0-4]%/m.test(await texto()) || !(await texto()).includes("100%"), "tras borrar, el avance baja");
+// 13b. Importar el reglamento (Word) que se acaba de descargar, con el sistema vacío
+await ir("/importar");
+await page.getByLabel("Archivo de Word").setInputFiles(ritDocx);
+await page.getByText(/sección\(es\) detectadas/).waitFor();
+const detectadas = Number((await page.getByText(/sección\(es\) detectadas/).innerText()).match(/(\d+) sección/)[1]);
+const sinCapitulo = await page.locator("main select").evaluateAll((sels) => sels.filter((x) => x.value === "").length);
+// La portada (nombre de la empresa) no es un capítulo: queda como «No importar».
+verificar(detectadas >= 10 && detectadas - sinCapitulo === 10, `el importador detecta ${detectadas} secciones y asigna los 10 capítulos (${sinCapitulo} sin asignar: la portada)`);
+await page.screenshot({ path: path.join(OUT, "10_importar.png") });
+await page.getByRole("button", { name: "Importar al sistema" }).click();
+await page.getByText(/Se importaron 10 capítulo/).waitFor();
+await page.getByText("10 de 10 capítulos cumplen").waitFor();
+verificar(await page.getByText(/No hay brechas/).isVisible(), "el reglamento importado cumple los 10 capítulos y no tiene brechas");
+
 await ir("/ajustes");
 await page.getByLabel("Archivo de respaldo").setInputFiles(respaldo);
 await page.getByText("Respaldo restaurado.").waitFor();
