@@ -102,3 +102,102 @@ reset role;
 select pg_temp.como('00000000-0000-0000-0000-000000000000');
 select pg_temp.falla($q$select crear_empresa('Anonima')$q$, 'usuario sin sesión válida no crea empresa');
 reset role;
+
+-- ───────── Equipo: roles, aprobaciones, invitaciones ─────────
+insert into auth.users(id) values
+  ('f1000000-0000-0000-0000-0000000000f1'), ('f2000000-0000-0000-0000-0000000000f2'),
+  ('f3000000-0000-0000-0000-0000000000f3'), ('f4000000-0000-0000-0000-0000000000f4'),
+  ('f5000000-0000-0000-0000-0000000000f5');
+insert into perfiles(user_id, rol, empresa_id, nombre) values
+  ('f1000000-0000-0000-0000-0000000000f1', 'editor',  '11111111-1111-1111-1111-111111111111', 'Eva Editora'),
+  ('f2000000-0000-0000-0000-0000000000f2', 'lector',  '11111111-1111-1111-1111-111111111111', 'Luis Lector'),
+  ('f3000000-0000-0000-0000-0000000000f3', 'revisor', '11111111-1111-1111-1111-111111111111', 'Rosa Revisora');
+
+-- Editor: escribe documentos, no aprueba ni invita.
+select pg_temp.como('f1000000-0000-0000-0000-0000000000f1');
+select pg_temp.afirma((select count(*) from rit_documentos) = 1, 'editor ve el RIT de su empresa');
+update rit_documentos set contenido = '{"secreto":"A3"}' where capitulo = 'mod_1';
+select pg_temp.afirma((select contenido->>'secreto' from rit_documentos) = 'A3', 'editor edita el RIT');
+select pg_temp.falla($q$insert into aprobaciones(empresa_id, huella, nombre) values ('11111111-1111-1111-1111-111111111111', repeat('a',64), 'x')$q$, 'editor no aprueba');
+select pg_temp.falla($q$select crear_invitacion('lector')$q$, 'editor no invita');
+select pg_temp.falla($q$select cambiar_rol('f2000000-0000-0000-0000-0000000000f2', 'editor')$q$, 'editor no cambia roles');
+select pg_temp.afirma((select count(*) from perfiles) >= 4, 'editor ve a su equipo');
+reset role;
+
+-- Lector: solo lectura.
+select pg_temp.como('f2000000-0000-0000-0000-0000000000f2');
+select pg_temp.afirma((select count(*) from rit_documentos) = 1, 'lector ve el RIT');
+update rit_documentos set contenido = '{"secreto":"HACK"}' where capitulo = 'mod_1';
+select pg_temp.afirma((select contenido->>'secreto' from rit_documentos) = 'A3', 'lector no logra editar (0 filas)');
+select pg_temp.falla($q$insert into rit_documentos(empresa_id, capitulo) values ('11111111-1111-1111-1111-111111111111','mod_3')$q$, 'lector no inserta capítulos');
+select pg_temp.falla($q$insert into aprobaciones(empresa_id, huella, nombre) values ('11111111-1111-1111-1111-111111111111', repeat('a',64), 'x')$q$, 'lector no aprueba');
+reset role;
+
+-- Revisor: aprueba, no edita; la aprobación es inmutable.
+select pg_temp.como('f3000000-0000-0000-0000-0000000000f3');
+select pg_temp.falla($q$insert into rit_documentos(empresa_id, capitulo) values ('11111111-1111-1111-1111-111111111111','mod_4')$q$, 'revisor no inserta capítulos');
+insert into aprobaciones(empresa_id, etiqueta, huella, nombre, cargo) values ('11111111-1111-1111-1111-111111111111', 'v1', repeat('a',64), 'Rosa Revisora', 'Gerente RRHH');
+select pg_temp.afirma((select count(*) from aprobaciones) = 1, 'revisor registra una aprobación');
+select pg_temp.falla($q$insert into aprobaciones(empresa_id, huella, nombre) values ('11111111-1111-1111-1111-111111111111', 'no-es-sha', 'x')$q$, 'huella inválida rechazada');
+select pg_temp.falla($q$insert into aprobaciones(empresa_id, huella, nombre, aprobado_por) values ('11111111-1111-1111-1111-111111111111', repeat('b',64), 'x', 'a0000000-0000-0000-0000-00000000000a')$q$, 'no se aprueba a nombre de otra persona');
+update aprobaciones set nombre = 'Falsificado';
+delete from aprobaciones;
+select pg_temp.afirma((select nombre from aprobaciones) = 'Rosa Revisora', 'aprobación inmutable (UPDATE/DELETE no hacen nada)');
+reset role;
+
+-- Otra empresa y organizador no ven aprobaciones ni equipo.
+select pg_temp.como('b0000000-0000-0000-0000-00000000000b');
+select pg_temp.afirma((select count(*) from aprobaciones) = 0, 'B no ve aprobaciones de A');
+select pg_temp.afirma((select count(*) from perfiles) = 1, 'B no ve el equipo de A');
+reset role;
+select pg_temp.como('c0000000-0000-0000-0000-00000000000c');
+select pg_temp.afirma((select count(*) from aprobaciones) = 0, 'organizador no ve aprobaciones');
+select pg_temp.afirma((select count(*) from invitaciones) = 0, 'organizador no ve invitaciones');
+select pg_temp.afirma((select count(*) from perfiles where empresa_id is not null) = 0, 'organizador no ve miembros de empresas');
+reset role;
+
+-- Administrador: invita, cambia roles, protege al último admin.
+select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
+create temp table cod as select crear_invitacion('editor') as c;
+grant select on cod to authenticated;
+select pg_temp.afirma((select length(c) from cod) = 10, 'admin crea invitación de 10 caracteres');
+select pg_temp.falla($q$select crear_invitacion('organizador')$q$, 'no se invita como organizador');
+select pg_temp.falla($q$select cambiar_rol('f2000000-0000-0000-0000-0000000000f2', 'organizador')$q$, 'no se asigna organizador');
+select pg_temp.falla($q$select cambiar_rol('a0000000-0000-0000-0000-00000000000a', 'lector')$q$, 'no se degrada al último admin');
+select pg_temp.falla($q$select quitar_miembro('a0000000-0000-0000-0000-00000000000a')$q$, 'no se quita al último admin');
+select pg_temp.falla($q$select cambiar_rol('b0000000-0000-0000-0000-00000000000b', 'lector')$q$, 'no se cambia rol de otra empresa');
+select cambiar_rol('f2000000-0000-0000-0000-0000000000f2', 'revisor');
+select pg_temp.afirma((select rol from perfiles where user_id = 'f2000000-0000-0000-0000-0000000000f2') = 'revisor', 'admin cambia rol');
+select quitar_miembro('f2000000-0000-0000-0000-0000000000f2');
+select pg_temp.afirma((select count(*) from perfiles where user_id = 'f2000000-0000-0000-0000-0000000000f2') = 0, 'admin quita a una persona');
+select pg_temp.afirma((select count(*) from invitaciones) = 1, 'admin ve sus invitaciones');
+reset role;
+
+-- B no ve las invitaciones de A.
+select pg_temp.como('b0000000-0000-0000-0000-00000000000b');
+select pg_temp.afirma((select count(*) from invitaciones) = 0, 'B no ve invitaciones de A');
+reset role;
+
+-- Aceptar invitación: una sola vez, solo sin perfil previo, con código vigente.
+select pg_temp.como('f4000000-0000-0000-0000-0000000000f4');
+select pg_temp.falla($q$select aceptar_invitacion('CODIGOFALSO', 'x')$q$, 'código inexistente rechazado');
+select aceptar_invitacion((select c from cod), 'Nuevo Editor');
+select pg_temp.afirma((select rol from perfiles where user_id = auth.uid()) = 'editor', 'el invitado entra con el rol de la invitación');
+select pg_temp.afirma((select count(*) from rit_documentos) = 1, 'el invitado ve el RIT de la empresa');
+reset role;
+select pg_temp.como('f5000000-0000-0000-0000-0000000000f5');
+select pg_temp.falla(format('select aceptar_invitacion(%L, ''x'')', (select c from cod)), 'un código no se usa dos veces');
+reset role;
+update invitaciones set expira_en = now() - interval '1 day';
+select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
+create temp table cod2 as select crear_invitacion('lector') as c;
+grant select on cod2 to authenticated;
+reset role;
+update invitaciones set expira_en = now() - interval '1 day' where codigo = (select c from cod2);
+select pg_temp.como('f5000000-0000-0000-0000-0000000000f5');
+select pg_temp.falla(format('select aceptar_invitacion(%L, ''x'')', (select c from cod2)), 'invitación vencida rechazada');
+select pg_temp.falla($q$select aceptar_invitacion('x')$q$, 'código corto rechazado');
+reset role;
+select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
+select pg_temp.falla($q$select aceptar_invitacion('ABC', 'x')$q$, 'quien ya tiene empresa no acepta invitaciones');
+reset role;
