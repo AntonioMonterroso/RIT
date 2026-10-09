@@ -3,6 +3,7 @@ import { auditar } from "@/lib/auditoria";
 import { estadoAprobacion } from "@/lib/aprobaciones";
 import { pendientes, type Novedad } from "@/lib/novedades";
 import { externosAuditoria } from "@/lib/progreso";
+import { contradicciones } from "@/lib/legal";
 import { mesDe } from "@/lib/rutina";
 
 export interface Indicador { id: string; texto: string; ok: boolean; detalle: string; href: string }
@@ -21,10 +22,12 @@ export function salud(e: EstadoRit, novedades: Novedad[], ahora: Date = new Date
   const revisadoEsteAnio = !!ultima && (ahora.getTime() - ultima.getTime()) / MS_DIA < 365;
   const vencidos = e.recordatorios.filter((r) => !r.hecho && r.fecha < ahora.toISOString().slice(0, 10)).length;
 
+  const contra = contradicciones(e.capitulos);
   const indicadores: Indicador[] = [
     { id: "auditoria", texto: "Cumple los criterios de la IGT", ok: aud.porcentaje >= 90, detalle: `${aud.marcados} de ${aud.total} criterios`, href: "/auditoria" },
     { id: "aprobacion", texto: "El texto vigente tiene aprobación interna", ok: apr.estado === "aprobado", detalle: apr.estado === "cambios" ? "Hay cambios posteriores a la última aprobación" : apr.estado === "aprobado" ? "Aprobado" : "Sin aprobar", href: "/aprobaciones" },
     { id: "revision", texto: "Revisión anual al día", ok: revisadoEsteAnio, detalle: ultima ? `Última aprobación: ${ultima.toLocaleDateString("es-GT")}` : "Aún sin revisión", href: "/aprobaciones" },
+    { id: "legal", texto: "Sin cifras por debajo de los mínimos legales", ok: contra === 0, detalle: contra === 0 ? "Sin alertas" : `${contra} alerta(s)`, href: "/auditoria" },
     { id: "novedades", texto: "Sin novedades legales pendientes", ok: pend === 0, detalle: pend === 0 ? "Al día" : `${pend} por atender`, href: "/novedades" },
     { id: "rutina", texto: "Rutina mensual al día", ok: rutinaAlDia, detalle: rutinaAlDia ? "Cerrada" : "Pendiente este mes", href: "/cumplimiento" },
     { id: "plazos", texto: "Sin plazos vencidos", ok: vencidos === 0, detalle: vencidos === 0 ? "Al día" : `${vencidos} vencido(s)`, href: "/calendario" },

@@ -18,6 +18,8 @@ import { pendientesTotales, revisarCapitulo } from "@/lib/revision";
 import { guardarVersion } from "@/lib/versiones";
 import type { Nodo } from "@/lib/docx";
 import { Cinta } from "./Cinta";
+import AlertasLegales from "@/components/AlertasLegales";
+import { alertasDeCapitulo } from "@/lib/legal";
 import { Pendientes } from "./Pendientes";
 import { SaltoPagina } from "./SaltoPagina";
 
@@ -72,6 +74,7 @@ export default function Redaccion() {
   }, [editor, listo, cap, docActual]);
 
   const rev = revisarCapitulo(cap, docActual);
+  const legales = alertasDeCapitulo(cap, docActual);
   const pendTotal = pendientesTotales(estado.capitulos);
   const guia = GUIA[cap];
 
@@ -162,7 +165,7 @@ export default function Redaccion() {
           {([["guia", "Guía"], ["revision", "Revisión"], ["clausulas", "Cláusulas"]] as const).map(([k, t]) => (
             <button key={k} role="tab" aria-selected={panel === k} onClick={() => setPanel(k)}
               className={`flex-1 border-b-2 px-3 py-3 text-sm font-semibold ${panel === k ? "border-brand-600 text-brand-800" : "border-transparent text-muted hover:text-ink"}`}>
-              {t}{k === "revision" && rev.pendientes > 0 && <span className="ml-1.5"><Insignia tono="warn">{rev.pendientes}</Insignia></span>}
+              {t}{k === "revision" && rev.pendientes + legales.length > 0 && <span className="ml-1.5"><Insignia tono={legales.some((a) => a.gravedad === "contradice") ? "danger" : "warn"}>{rev.pendientes + legales.length}</Insignia></span>}
             </button>
           ))}
         </div>
@@ -187,6 +190,7 @@ export default function Redaccion() {
                 ? <Aviso tono="warn">Hay {rev.pendientes} dato(s) por completar en este capítulo (resaltados en amarillo).</Aviso>
                 : rev.cumple ? <Aviso tono="ok">Este capítulo cumple los requisitos.</Aviso> : null}
               {pendTotal > 0 && <Boton variante="secundario" pequeno className="w-full" onClick={siguientePendiente}>Ir al siguiente dato pendiente ({pendTotal})</Boton>}
+              <div><p className="mb-2 font-bold">Verificación legal{legales.length > 0 && <span className="ml-1.5"><Insignia tono={legales.some((a) => a.gravedad === "contradice") ? "danger" : "warn"}>{legales.length}</Insignia></span>}</p><AlertasLegales alertas={legales} /></div>
             </>
           )}
           {panel === "clausulas" && (

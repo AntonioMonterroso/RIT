@@ -303,6 +303,13 @@ const barra = await page.getByRole("navigation", { name: "Principal" }).innerTex
 verificar(/Calendario\s*2/.test(barra), "la barra lateral muestra 2 avisos urgentes");
 await page.screenshot({ path: path.join(OUT, "06_calendario.png") });
 
+// 14a. Verificación legal sobre el reglamento generado
+await ir("/auditoria");
+verificar(await page.getByRole("heading", { name: "Verificación legal" }).isVisible() && await page.getByText(/No se detectaron cifras/).isVisible(), "la verificación legal no encuentra contradicciones en el borrador generado");
+await ir("/editor");
+await page.getByRole("tab", { name: /Revisión/ }).click();
+verificar(await page.getByText("Verificación legal").first().isVisible(), "el panel de revisión del editor incluye la verificación legal");
+
 // 14b. Retención: novedades legales, aprobaciones, rutina y bitácora
 await ir("/organizador");
 await page.getByLabel("Título", { exact: true }).nth(2).fill("Prohibición de acoso en el trabajo");

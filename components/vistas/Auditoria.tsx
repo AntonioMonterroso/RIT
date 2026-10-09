@@ -6,6 +6,9 @@ import { Aviso, Insignia, Pagina, Tarjeta } from "@/components/ui";
 import { BLOQUES, CRITERIOS } from "@/content/checklist";
 import { auditar } from "@/lib/auditoria";
 import { externosAuditoria } from "@/lib/progreso";
+import AlertasLegales from "@/components/AlertasLegales";
+import { alertasLegales } from "@/lib/legal";
+import { NORMAS } from "@/content/baselegal";
 import { pendientesTotales, revisarCapitulo } from "@/lib/revision";
 
 const SEM = {
@@ -19,6 +22,7 @@ export default function Auditoria() {
   const r = auditar(estado.capitulos, estado.manuales, externosAuditoria(estado));
   const s = SEM[r.semaforo];
   const pend = pendientesTotales(estado.capitulos);
+  const legales = alertasLegales(estado.capitulos);
 
   return (
     <Pagina titulo="Auditoría previa a la IGT" descripcion="Los criterios de contenido se verifican solos leyendo su reglamento. Los documentos de soporte los marca usted.">
@@ -59,6 +63,15 @@ export default function Auditoria() {
               </ul>
             </Tarjeta>
           ))}
+          <Tarjeta titulo="Verificación legal" descripcion="Compara las cifras y expresiones de su reglamento con los mínimos del Código de Trabajo y otras normas.">
+            <AlertasLegales alertas={legales} enlazar />
+            <details className="mt-4 text-sm">
+              <summary className="cursor-pointer font-semibold text-brand-700">Normas que se revisan ({Object.keys(NORMAS).length})</summary>
+              <ul className="mt-2 space-y-2 text-muted">
+                {Object.values(NORMAS).map((n) => <li key={n.id}><b className="text-ink">{n.norma}{n.articulo ? `, art. ${n.articulo}` : ""}:</b> {n.resumen} <i>{n.validada ? "Validada." : "Pendiente de validación por un abogado."}</i></li>)}
+              </ul>
+            </details>
+          </Tarjeta>
         </div>
       </div>
     </Pagina>
