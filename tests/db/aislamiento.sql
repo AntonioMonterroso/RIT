@@ -15,6 +15,9 @@ insert into perfiles(user_id, rol, empresa_id) values
   ('b0000000-0000-0000-0000-00000000000b', 'empresa_admin', '22222222-2222-2222-2222-222222222222'),
   ('c0000000-0000-0000-0000-00000000000c', 'organizador', null),
   ('d0000000-0000-0000-0000-00000000000d', 'empresa_admin', '33333333-3333-3333-3333-333333333333');
+insert into empresa_datos(empresa_id, razon_social, nit) values
+  ('11111111-1111-1111-1111-111111111111', 'Razon A', '111'),
+  ('22222222-2222-2222-2222-222222222222', 'Razon B', '222');
 insert into rit_documentos(empresa_id, capitulo, contenido) values
   ('11111111-1111-1111-1111-111111111111', 'mod_1', '{"secreto":"A"}'),
   ('22222222-2222-2222-2222-222222222222', 'mod_1', '{"secreto":"B"}'),
@@ -64,6 +67,8 @@ select pg_temp.afirma((select count(*) from rit_versiones) = 0, 'organizador no 
 select pg_temp.afirma((select count(*) from checklist_igt) = 0, 'organizador no ve checklist');
 select pg_temp.afirma((select count(*) from memoriales) = 0, 'organizador no ve memoriales');
 select pg_temp.afirma((select count(*) from recordatorios_empresa) = 0, 'organizador no ve plazos de empresas');
+select pg_temp.afirma((select count(*) from empresa_datos) = 0, 'organizador no ve razón social, NIT ni representante');
+select pg_temp.afirma((select count(*) from publicaciones) = 0, 'organizador no ve publicaciones');
 select pg_temp.afirma((select count(*) from empresas) = 3, 'organizador lista las empresas');
 select pg_temp.falla($q$insert into rit_documentos(empresa_id, capitulo) values ('11111111-1111-1111-1111-111111111111','mod_2')$q$, 'organizador no escribe RIT');
 insert into biblioteca_leyes(titulo, referencia, contenido) values ('Código de Trabajo', 'Decreto 1441', 'texto');
@@ -75,4 +80,21 @@ reset role;
 select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
 select pg_temp.afirma((select count(*) from biblioteca_leyes) = 1, 'empresa lee la biblioteca');
 select pg_temp.afirma((select count(*) from recordatorios_globales) = 1, 'empresa lee recordatorios globales');
+reset role;
+
+-- Alta de empresa y periodo de prueba.
+select pg_temp.como('e0000000-0000-0000-0000-00000000000e');
+select pg_temp.afirma((select count(*) from empresas) = 0, 'usuario nuevo aún no ve empresas');
+select pg_temp.falla($q$insert into empresas(nombre) values ('Intrusa')$q$, 'no se crea empresa por INSERT directo');
+select pg_temp.falla($q$insert into perfiles(user_id, rol) values (auth.uid(), 'organizador')$q$, 'no se autoasigna rol de organizador');
+select pg_temp.falla($q$select crear_empresa('x')$q$, 'nombre inválido rechazado');
+select crear_empresa('Mi Empresa Nueva');
+select pg_temp.afirma((select count(*) from empresas) = 1, 'tras el alta ve solo su empresa');
+select pg_temp.afirma((select estado_suscripcion from empresas) = 'prueba', 'nace en periodo de prueba');
+insert into rit_documentos(empresa_id, capitulo, contenido) values (mi_empresa(), 'mod_1', '{}');
+select pg_temp.afirma((select count(*) from rit_documentos) = 1, 'en prueba puede escribir su RIT');
+select pg_temp.falla($q$select crear_empresa('Otra Más')$q$, 'no puede crear una segunda empresa');
+reset role;
+select pg_temp.como('00000000-0000-0000-0000-000000000000');
+select pg_temp.falla($q$select crear_empresa('Anonima')$q$, 'usuario sin sesión válida no crea empresa');
 reset role;

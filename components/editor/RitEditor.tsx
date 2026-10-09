@@ -13,7 +13,11 @@ import { auditar, capituloCompleto, textoPlano } from "@/lib/auditoria";
 import { generarDocxBlob, type Nodo } from "@/lib/docx";
 import { generarMemorialBlob, type DatosMemorial } from "@/lib/memorial";
 import { fechaVigencia, sumarDias } from "@/lib/fechas";
-import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit } from "@/lib/almacen";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ESTADO_INICIAL, type EstadoRit } from "@/lib/almacen";
+import { repositorioLocal, repositorioSupabase, type Repositorio } from "@/lib/repositorio";
+import { clienteSupabase } from "@/lib/supabase/cliente";
 import { Cinta } from "./Cinta";
 import { SaltoPagina } from "./SaltoPagina";
 
@@ -26,8 +30,11 @@ const SEMAFORO = {
 } as const;
 
 export default function RitEditor() {
+  const router = useRouter();
   const [estado, setEstado] = useState<EstadoRit>(ESTADO_INICIAL);
   const [listo, setListo] = useState(false);
+  const [guardado, setGuardado] = useState<"" | "guardando" | "ok" | "error">("");
+  const repoRef = useRef<Repositorio>(repositorioLocal);
   const [vista, setVista] = useState<Vista>("redaccion");
   const [capitulo, setCapitulo] = useState<CapituloKey>("mod_1");
   const capRef = useRef(capitulo);
@@ -55,21 +62,39 @@ export default function RitEditor() {
 
   // Carga inicial del borrador (solo en el navegador).
   useEffect(() => {
-    setEstado(cargarBorrador());
-    setListo(true);
-  }, []);
+    let vivo = true;
+    (async () => {
+      const db = clienteSupabase();
+      if (db) {
+        const { data: sesion } = await db.auth.getSession();
+        const { data: perfil } = sesion.session ? await db.from("perfiles").select("empresa_id").maybeSingle() : { data: null };
+        if (!perfil?.empresa_id) return router.replace("/acceso");
+        repoRef.current = repositorioSupabase(db, perfil.empresa_id);
+      }
+      try {
+        const cargado = await repoRef.current.cargar();
+        if (vivo) { setEstado(cargado); setListo(true); }
+      } catch {
+        if (vivo) { setGuardado("error"); setListo(true); }
+      }
+    })();
+    return () => { vivo = false; };
+  }, [router]);
 
   // Guardado automático con espera de 600 ms.
   useEffect(() => {
     if (!listo) return;
-    const t = setTimeout(() => guardarBorrador(estado), 600);
+    const t = setTimeout(async () => {
+      setGuardado("guardando");
+      try { await repoRef.current.guardar(estado); setGuardado("ok"); } catch { setGuardado("error"); }
+    }, 600);
     return () => clearTimeout(t);
   }, [estado, listo]);
 
   // Al cerrar o recargar la pestaña se guarda de inmediato lo que esté pendiente.
   useEffect(() => {
     if (!listo) return;
-    const volcar = () => guardarBorrador(estadoRef.current);
+    const volcar = () => { void repoRef.current.guardar(estadoRef.current).catch(() => {}); };
     window.addEventListener("pagehide", volcar);
     document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && volcar());
     return () => window.removeEventListener("pagehide", volcar);
@@ -126,8 +151,10 @@ export default function RitEditor() {
         </div>
         <div className="flex items-center gap-3 text-sm">
           <span className="opacity-80" aria-live="polite">
-            {listo && estado.actualizado ? "Guardado" : ""}
+            {guardado === "guardando" ? "Guardando…" : guardado === "ok" ? "Guardado" : guardado === "error" ? "No se pudo guardar" : ""}
           </span>
+          <Link href="/biblioteca" className="hover:underline">Biblioteca</Link>
+          <Link href="/calendario" className="hover:underline">Calendario</Link>
           <button onClick={exportar} className="rounded bg-white/15 px-3 py-1.5 font-semibold hover:bg-white/25">
             Descargar Word (.docx)
           </button>

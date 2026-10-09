@@ -14,9 +14,17 @@ sin acceso al contenido de ninguna empresa.
 | Fechas legales (feriados de Guatemala, 15 días de publicidad) | Hecho, con pruebas |
 | Memorial (.docx) y publicidad/vigencia (Art. 59) | Hecho |
 | Esquema de base de datos con RLS | Hecho y probado en Postgres 16 local (`npm run test:db`); falta probarlo en un proyecto Supabase real |
-| Cuentas, guardado en Supabase, calendario, biblioteca, Stripe | Pendiente |
+| Cuentas, guardado en Supabase, biblioteca, calendario, panel del organizador | Escrito; probado con dobles y Postgres local, **no contra un proyecto Supabase real** |
+| Cobro con Stripe | Pendiente |
 
-Hoy el borrador se guarda en el navegador (`lib/almacen.ts`); se cambiará por Supabase al conectar cuentas.
+Sin variables de entorno el borrador se guarda en el navegador. Para activar cuentas:
+
+1. Cree un proyecto en Supabase y ejecute en orden `supabase/migrations/0001_init.sql` y `0002_datos_empresa.sql`.
+2. Copie `.env.example` a `.env.local` con la URL y la clave anónima.
+3. El primer organizador se crea a mano (las cuentas nuevas son siempre de empresa):
+   `insert into perfiles (user_id, rol) values ('<uuid del usuario>', 'organizador');`
+
+Las empresas nuevas arrancan en estado `prueba` (pueden escribir); `morosa`, `cancelada` e `inactiva` solo leen.
 
 ## Desarrollo
 

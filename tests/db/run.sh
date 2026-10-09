@@ -7,6 +7,6 @@ DB="rit_test_$$"
 createdb "$DB"
 trap 'dropdb --if-exists "$DB"' EXIT
 psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$DIR/stub_supabase.sql"
-psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$DIR/../../supabase/migrations/0001_init.sql"
+for m in "$DIR"/../../supabase/migrations/*.sql; do psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$m"; done
 psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$DIR/aislamiento.sql" 2>&1 | grep -E "NOTICE|ERROR|FALLO" | sed 's/^psql:[^ ]* //'
 echo "RLS: todas las pruebas pasaron"
