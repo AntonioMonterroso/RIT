@@ -55,12 +55,12 @@ export default function Acceso() {
     router.replace("/inicio");
   }
 
-  const campo = "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal";
+  const campo = "mt-1 w-full rounded border border-line px-3 py-2 text-sm font-normal";
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
-      <h1 className="mb-1 text-2xl font-bold text-[var(--primary)]">RIT Guatemala</h1>
-      <p className="mb-6 text-sm text-slate-600">Reglamento Interior de Trabajo de su empresa.</p>
+      <h1 className="mb-1 text-2xl font-bold text-brand-700">RIT Guatemala</h1>
+      <p className="mb-6 text-sm text-muted">Reglamento Interior de Trabajo de su empresa.</p>
 
       {!supabaseConfigurado && (
         <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -69,14 +69,14 @@ export default function Acceso() {
         </p>
       )}
 
-      {supabaseConfigurado && paso === "cargando" && <p className="text-sm text-slate-500" role="status">Cargando…</p>}
+      {supabaseConfigurado && paso === "cargando" && <p className="text-sm text-muted" role="status">Cargando…</p>}
 
       {paso === "credenciales" && (
-        <form onSubmit={enviarCredenciales} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-          <div role="tablist" className="flex gap-4 border-b border-slate-200 text-sm font-semibold">
+        <form onSubmit={enviarCredenciales} className="space-y-4 rounded-lg border vidrio p-6">
+          <div role="tablist" className="flex gap-4 border-b border-line text-sm font-semibold">
             {(["entrar", "crear"] as const).map((m) => (
               <button type="button" role="tab" key={m} aria-selected={modo === m} onClick={() => { setModo(m); setMensaje(""); }}
-                className={`border-b-2 pb-2 ${modo === m ? "border-[var(--primary)] text-[var(--primary)]" : "border-transparent text-slate-500"}`}>
+                className={`border-b-2 pb-2 ${modo === m ? "border-brand-600 text-brand-700" : "border-transparent text-muted"}`}>
                 {m === "entrar" ? "Entrar" : "Crear cuenta"}
               </button>
             ))}
@@ -88,19 +88,19 @@ export default function Acceso() {
             <input type="password" required minLength={8} autoComplete={modo === "entrar" ? "current-password" : "new-password"}
               value={clave} onChange={(e) => setClave(e.target.value)} className={campo} />
           </label>
-          <button disabled={ocupado} className="w-full rounded bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+          <button disabled={ocupado} className="w-full rounded degradado-boton px-4 py-2 text-sm font-semibold disabled:opacity-60">
             {modo === "entrar" ? "Entrar" : "Crear cuenta"}
           </button>
         </form>
       )}
 
       {paso === "empresa" && (
-        <form onSubmit={crearEmpresa} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-600">Último paso: indique el nombre de su empresa.</p>
+        <form onSubmit={crearEmpresa} className="space-y-4 rounded-lg border vidrio p-6">
+          <p className="text-sm text-muted">Último paso: indique el nombre de su empresa.</p>
           <label className="block text-sm font-semibold">Nombre de la empresa
             <input required minLength={2} value={empresa} onChange={(e) => setEmpresa(e.target.value)} className={campo} />
           </label>
-          <button disabled={ocupado} className="w-full rounded bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+          <button disabled={ocupado} className="w-full rounded degradado-boton px-4 py-2 text-sm font-semibold disabled:opacity-60">
             Continuar
           </button>
         </form>

@@ -26,7 +26,7 @@ export default function Biblioteca() {
       {leyes && visibles.length === 0 && !error && <Vacio titulo={leyes.length ? "Ningún resultado." : "Aún no hay leyes publicadas."} />}
       <ul className="space-y-3">
         {visibles.map((l) => (
-          <li key={l.id} className="rounded-[var(--radius)] border border-line bg-surface shadow-card">
+          <li key={l.id} className="vidrio rounded-[var(--radius)]">
             <button onClick={() => setAbierta(abierta === l.id ? null : l.id)} aria-expanded={abierta === l.id} className="flex w-full items-baseline justify-between gap-3 px-5 py-3 text-left">
               <span className="font-semibold">{l.titulo}</span>
               <span className="text-xs text-muted">{l.referencia}</span>

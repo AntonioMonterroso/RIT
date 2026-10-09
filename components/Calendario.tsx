@@ -33,7 +33,7 @@ export default function Calendario() {
           {avisos.map((a) => {
             const vencido = !a.hecho && a.fecha < hoy;
             return (
-              <li key={a.clave} className={`flex items-start gap-4 rounded-[var(--radius)] border bg-surface p-4 shadow-card ${a.hecho ? "opacity-60" : ""} ${vencido ? "border-danger-line" : a.fecha === hoy ? "border-warn-line" : "border-line"}`}>
+              <li key={a.clave} className={`flex items-start gap-4 vidrio rounded-[var(--radius)] p-4 ${a.hecho ? "opacity-60" : ""} ${vencido ? "border-danger-line" : a.fecha === hoy ? "border-warn-line" : "border-line"}`}>
                 {a.origen === "propio" && (
                   <input type="checkbox" aria-label={`Marcar como hecho: ${a.titulo}`} checked={!!a.hecho} className="mt-1 h-4 w-4 accent-[var(--brand-700)]"
                     onChange={(e) => actualizar((s) => ({ ...s, recordatorios: s.recordatorios.map((r) => (r.id === a.propioId ? { ...r, hecho: e.target.checked } : r)) }))} />

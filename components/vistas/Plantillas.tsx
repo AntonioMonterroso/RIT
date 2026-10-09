@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRit } from "@/components/EstadoProvider";
 import { Aviso, Boton, Insignia, Pagina, Seleccion, Texto } from "@/components/ui";
 import { CAPITULOS, type CapituloKey } from "@/content/capitulos";
 import { CLAUSULAS } from "@/content/plantillas";
 import { contexto, nodosDeClausula } from "@/lib/generador";
+import { leerParametro } from "@/lib/consulta";
 import { renumerar } from "@/lib/numeracion";
 import { documento, textoPlano } from "@/lib/texto";
 
@@ -18,6 +19,7 @@ export default function Plantillas() {
   const [abierta, setAbierta] = useState<string | null>(null);
   const [agregada, setAgregada] = useState<string | null>(null);
   const ctx = useMemo(() => contexto(estado), [estado]);
+  useEffect(() => { const t = leerParametro("q"); if (t) { setQ(t); } }, []);
 
   const visibles = CLAUSULAS.filter((c) => (cap === "todos" || c.capitulo === cap) && (!q.trim() || `${c.titulo} ${c.resumen}`.toLowerCase().includes(q.toLowerCase())));
   const yaEsta = (titulo: string, k: CapituloKey) => textoPlano(estado.capitulos[k]).includes(titulo);
@@ -47,7 +49,7 @@ export default function Plantillas() {
           const chap = CAPITULOS.find((x) => x.key === c.capitulo)!;
           const incluida = yaEsta(c.titulo, c.capitulo);
           return (
-            <li key={c.id} className="rounded-[var(--radius)] border border-line bg-surface shadow-card">
+            <li key={c.id} className="vidrio rounded-[var(--radius)]">
               <div className="flex flex-wrap items-center gap-3 px-5 py-3">
                 <button className="min-w-0 flex-1 text-left" aria-expanded={abierta === c.id} onClick={() => setAbierta(abierta === c.id ? null : c.id)}>
                   <span className="block font-semibold">{c.titulo}</span>

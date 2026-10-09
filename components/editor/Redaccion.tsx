@@ -12,6 +12,7 @@ import { CAPITULOS, CAPITULO_POR_KEY, type CapituloKey } from "@/content/capitul
 import { GUIA } from "@/content/guia";
 import { clausulasDe } from "@/content/plantillas";
 import { generarCapitulo, nodosDeClausula } from "@/lib/generador";
+import { leerParametro } from "@/lib/consulta";
 import { renumerar } from "@/lib/numeracion";
 import { pendientesTotales, revisarCapitulo } from "@/lib/revision";
 import type { Nodo } from "@/lib/docx";
@@ -51,7 +52,7 @@ export default function Redaccion() {
 
   // Capítulo inicial desde ?cap=
   useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get("cap") as CapituloKey | null;
+    const k = leerParametro("cap") as CapituloKey | null;
     if (k && k in CAPITULO_POR_KEY) setCap(k);
   }, []);
 
@@ -110,9 +111,9 @@ export default function Redaccion() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col xl:flex-row">
-      <aside aria-label="Capítulos" className="shrink-0 overflow-y-auto border-b border-line bg-surface xl:w-64 xl:border-b-0 xl:border-r">
-        <p className="border-b border-line px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted">Capítulos</p>
+    <div className="vidrio flex h-[calc(100vh-6.25rem)] min-h-[560px] flex-col overflow-hidden rounded-2xl xl:flex-row">
+      <aside aria-label="Capítulos" className="shrink-0 overflow-y-auto border-b border-line bg-black/20 xl:w-64 xl:border-b-0 xl:border-r">
+        <p className="etiqueta-mono border-b border-line px-4 py-3 text-[10px] text-muted">Capítulos</p>
         <ul className="flex gap-0 overflow-x-auto xl:block">
           {CAPITULOS.map((c) => {
             const r = revisarCapitulo(c.key, estado.capitulos[c.key]);
@@ -120,7 +121,7 @@ export default function Redaccion() {
             return (
               <li key={c.key} className="shrink-0 xl:shrink">
                 <button onClick={() => { setCap(c.key); setConfirmar(false); setNota(""); }} aria-current={cap === c.key ? "true" : undefined}
-                  className={`flex w-full items-center justify-between gap-2 border-b border-line px-4 py-3 text-left text-sm xl:border-b ${cap === c.key ? "border-l-4 border-l-brand-700 bg-brand-50 font-bold text-brand-700" : "hover:bg-canvas"}`}>
+                  className={`flex w-full items-center justify-between gap-2 border-b border-line px-4 py-3 text-left text-sm xl:border-b ${cap === c.key ? "border-l-[3px] border-l-brand-600 bg-brand-50 font-semibold text-brand-800" : "hover:bg-white/[0.05]"}`}>
                   <span className="max-w-48 xl:max-w-none">{c.titulo}</span>
                   <span title={r.cumple ? "Cumple" : r.caracteres > 0 ? "En redacción" : "Vacío"} className={`h-2.5 w-2.5 shrink-0 rounded-full ${tono}`} />
                 </button>
@@ -132,7 +133,7 @@ export default function Redaccion() {
 
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         {editor && <Cinta editor={editor} onClausula={() => setPanel("clausulas")} />}
-        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-black/10 px-4 py-2">
           <Boton pequeno variante="secundario" onClick={renumerarTodo}>Renumerar artículos</Boton>
           {confirmar ? (
             <>
@@ -143,7 +144,7 @@ export default function Redaccion() {
           ) : <Boton pequeno variante="secundario" onClick={() => setConfirmar(true)}>Regenerar este capítulo</Boton>}
           <span className="ml-auto text-xs text-muted" role="status" aria-live="polite">{nota}</span>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-line/60 px-4 py-8">
+        <div className="min-h-0 flex-1 overflow-auto bg-black/30 px-4 py-8">
           <div className="hoja">
             <h2 className="mb-6 text-center text-lg font-bold uppercase" style={{ fontFamily: "inherit" }}>{CAPITULO_POR_KEY[cap].titulo}</h2>
             <EditorContent editor={editor} />
@@ -151,11 +152,11 @@ export default function Redaccion() {
         </div>
       </section>
 
-      <aside aria-label="Ayuda del capítulo" className="flex shrink-0 flex-col border-t border-line bg-surface xl:w-80 xl:border-l xl:border-t-0">
+      <aside aria-label="Ayuda del capítulo" className="flex shrink-0 flex-col border-t border-line bg-black/20 xl:w-80 xl:border-l xl:border-t-0">
         <div role="tablist" className="flex border-b border-line">
           {([["guia", "Guía"], ["revision", "Revisión"], ["clausulas", "Cláusulas"]] as const).map(([k, t]) => (
             <button key={k} role="tab" aria-selected={panel === k} onClick={() => setPanel(k)}
-              className={`flex-1 border-b-2 px-3 py-3 text-sm font-semibold ${panel === k ? "border-brand-700 text-brand-700" : "border-transparent text-muted hover:text-ink"}`}>
+              className={`flex-1 border-b-2 px-3 py-3 text-sm font-semibold ${panel === k ? "border-brand-600 text-brand-800" : "border-transparent text-muted hover:text-ink"}`}>
               {t}{k === "revision" && rev.pendientes > 0 && <span className="ml-1.5"><Insignia tono="warn">{rev.pendientes}</Insignia></span>}
             </button>
           ))}

@@ -4,6 +4,10 @@ Sistema web para redactar, auditar y presentar el **Reglamento Interior de Traba
 empresa guatemalteca. Un despacho organizador administra la biblioteca legal y los recordatorios
 sin acceso al contenido de ninguna empresa.
 
+## Probarlo sin instalar nada
+
+Descargue **`RIT-demo.html`** (está en la raíz del repositorio) y ábralo con doble clic en Chrome, Edge o Firefox. Funciona sin internet y guarda su trabajo en ese navegador. Si lo regenera: `npm run demo`.
+
 ## Qué hace
 
 Guía a la empresa de punta a punta, en este orden (`/inicio` muestra el avance de cada paso):
@@ -17,7 +21,7 @@ Guía a la empresa de punta a punta, en este orden (`/inicio` muestra el avance 
 7. **Calendario** con plazos, recordatorios propios y avisos generales; **biblioteca legal**.
 8. **Ajustes**: datos de la empresa y respaldo/restauración.
 
-Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Estado
 

@@ -39,7 +39,7 @@ export default function PanelOrganizador() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex h-14 items-center justify-between border-b border-line bg-surface px-5 md:px-8">
+      <header className="flex h-14 items-center justify-between vidrio-fuerte border-x-0 border-t-0 px-5 md:px-8">
         <p className="text-sm font-bold">RIT Guatemala · Administración</p>
         <div className="flex gap-2">
           {datos().local && <Boton variante="secundario" pequeno onClick={() => router.push("/inicio")}>Ver como empresa</Boton>}

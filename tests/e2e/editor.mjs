@@ -5,6 +5,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
+// MODO=hash prueba el archivo independiente (RIT-demo.html), cuya ruta va en el hash: file:///…/RIT-demo.html#/inicio
+const HASH = process.env.MODO === "hash";
+const url = (r) => (HASH ? `${BASE}#${r}` : `${BASE}${r}`);
+const esperaRuta = (fragmento) => page.waitForFunction((f) => window.location.href.includes(f), fragmento, { timeout: 15000 });
 const OUT = process.env.OUT_DIR ?? ".";
 const exe = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
 const pasos = [];
@@ -18,7 +22,11 @@ const page = await ctx.newPage();
 const errores = [];
 page.on("pageerror", (e) => errores.push(e.message));
 page.on("console", (m) => m.type() === "error" && errores.push(m.text()));
-const ir = (r) => page.goto(`${BASE}${r}`);
+// Navega y espera a que el estado de la empresa termine de cargar (el avance deja de mostrar «…»).
+const ir = async (r) => {
+  await page.goto(url(r));
+  await page.waitForFunction(() => !/Avance\s*…/i.test(document.body.innerText), null, { timeout: 10000 });
+};
 const texto = () => page.locator("main").innerText();
 const descargar = async (boton) => {
   const [d] = await Promise.all([page.waitForEvent("download"), boton.click()]);
@@ -29,7 +37,8 @@ const descargar = async (boton) => {
 
 // 1. Entrada
 await ir("/");
-await page.waitForURL("**/inicio");
+await esperaRuta("/inicio");
+await page.getByText("Ruta hacia un reglamento aprobado").waitFor();
 verificar((await texto()).includes("Ruta hacia un reglamento aprobado"), "la raíz lleva al Inicio con la ruta de pasos");
 await page.screenshot({ path: path.join(OUT, "01_inicio.png") });
 
@@ -53,7 +62,7 @@ verificar(await page.getByText("Dentro del límite").isVisible(), "lunes a viern
 await page.getByText("Teletrabajo o trabajo híbrido").click();
 await page.getByText("Maneja efectivo, inventarios o fondos").click();
 await page.getByRole("button", { name: "Generar borrador personalizado" }).click();
-await page.waitForURL("**/editor");
+await esperaRuta("/editor");
 
 // 4. Editor con el borrador
 const hoja = page.locator(".hoja .ProseMirror");
@@ -99,7 +108,8 @@ verificar((await page.locator(".hoja .pendiente").count()) === 0, "ya no quedan 
 
 // 6. Auditoría
 await ir("/auditoria");
-verificar(/75%/.test(await texto()), "auditoría: 12 de 16 criterios automáticos al inicio (75%)");
+await page.waitForFunction(() => /75\s*%/.test(document.querySelector("main")?.innerText ?? ""), null, { timeout: 8000 }).catch(() => {});
+verificar(/75\s*%/.test(await texto()), "auditoría: 12 de 16 criterios automáticos al inicio (75%)");
 for (const n of ["Copia legible de la Patente", "Copia del nombramiento", "Planilla pagada del IGSS"]) {
   await page.getByRole("checkbox", { name: new RegExp(n) }).check();
 }
@@ -137,8 +147,31 @@ verificar(fs.statSync(constancia).size > 3000, "se descarga la constancia de rec
 
 // 12. Biblioteca de cláusulas
 await ir("/plantillas");
-await page.getByLabel("Buscar").fill("acoso");
+await page.getByRole("searchbox", { name: "Buscar" }).fill("acoso");
 verificar(await page.getByText("Prevención del acoso laboral y sexual").isVisible(), "la búsqueda de cláusulas encuentra 'acoso'");
+
+// 12b. Buscador de comandos (Ctrl+K)
+await ir("/inicio");
+await page.waitForLoadState("networkidle");
+await page.getByText("Centro de mando").first().waitFor();
+await page.waitForTimeout(500); // hidratación: el atajo se registra al cargar
+await page.keyboard.press("Control+k");
+await page.getByRole("dialog", { name: "Buscador de comandos" }).waitFor();
+await page.keyboard.type("vacaciones");
+await page.getByRole("option", { name: /Vacaciones anuales/ }).waitFor({ timeout: 5000 });
+verificar(true, "Ctrl+K encuentra la cláusula «Vacaciones anuales»");
+await page.keyboard.press("Enter");
+await esperaRuta("/plantillas");
+await page.waitForFunction(() => document.querySelector('input[type="search"]')?.value === "Vacaciones anuales", null, { timeout: 8000 }).catch(() => {});
+verificar((await page.getByRole("searchbox", { name: "Buscar" }).inputValue()) === "Vacaciones anuales", "al elegirla se abre la biblioteca de cláusulas ya filtrada");
+await page.keyboard.press("Control+k");
+await page.keyboard.type("calend");
+await page.keyboard.press("Enter");
+await esperaRuta("/calendario");
+verificar(true, "el buscador navega a una pantalla con el teclado");
+await page.keyboard.press("Control+k");
+await page.keyboard.press("Escape");
+verificar(!(await page.getByRole("dialog", { name: "Buscador de comandos" }).isVisible().catch(() => false)), "Esc cierra el buscador");
 
 // 13. Respaldo, borrado y restauración
 await ir("/ajustes");

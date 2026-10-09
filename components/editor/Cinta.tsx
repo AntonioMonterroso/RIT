@@ -16,7 +16,7 @@ function Boton({ activo, onClick, titulo, children, deshabilitado }: {
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={`h-8 min-w-8 px-2 rounded text-sm font-medium transition-colors disabled:opacity-40 ${
-        activo ? "bg-blue-100 text-blue-900" : "hover:bg-slate-100 text-slate-700"
+        activo ? "bg-brand-100 text-brand-800" : "hover:bg-white/10 text-ink"
       }`}
     >
       {children}
@@ -24,7 +24,7 @@ function Boton({ activo, onClick, titulo, children, deshabilitado }: {
   );
 }
 
-const Sep = () => <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden />;
+const Sep = () => <span className="mx-1 h-6 w-px bg-white/15" aria-hidden />;
 
 /** Barra de herramientas tipo cinta de Word. */
 export function Cinta({ editor, onClausula }: { editor: Editor; onClausula: () => void }) {
@@ -52,7 +52,7 @@ export function Cinta({ editor, onClausula }: { editor: Editor; onClausula: () =
   const estilo = s.h1 ? "1" : s.h2 ? "2" : s.h3 ? "3" : "0";
 
   return (
-    <div role="toolbar" aria-label="Formato" className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-white px-3 py-1.5">
+    <div role="toolbar" aria-label="Formato" className="vidrio-fuerte flex flex-wrap items-center gap-0.5 border-x-0 border-t-0 px-3 py-1.5">
       <Boton titulo="Deshacer (Ctrl+Z)" deshabilitado={!s.puedeDeshacer} onClick={() => c().undo().run()}>↶</Boton>
       <Boton titulo="Rehacer (Ctrl+Y)" deshabilitado={!s.puedeRehacer} onClick={() => c().redo().run()}>↷</Boton>
       <Sep />
@@ -64,7 +64,7 @@ export function Cinta({ editor, onClausula }: { editor: Editor; onClausula: () =
           if (v === "0") c().setParagraph().run();
           else c().setHeading({ level: Number(v) as 1 | 2 | 3 }).run();
         }}
-        className="h-8 rounded border border-slate-200 bg-white px-2 text-sm"
+        className="h-8 rounded-lg border border-line bg-black/30 px-2 text-sm text-ink"
       >
         <option value="0">Texto normal</option>
         <option value="1">Título 1</option>

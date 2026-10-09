@@ -2,15 +2,29 @@
 
 import Link from "next/link";
 import { useRit } from "@/components/EstadoProvider";
-import { Aviso, Boton, Insignia, Pagina, Progreso, Tarjeta } from "@/components/ui";
-import { avanceGeneral, pasos, siguientePaso } from "@/lib/progreso";
-import { obligatorio } from "@/lib/diagnostico";
+import { Anillo, Aviso, Boton, Insignia, Pagina, Progreso, Tarjeta } from "@/components/ui";
+import { auditar } from "@/lib/auditoria";
 import { hoyISO } from "@/lib/avisos";
+import { obligatorio } from "@/lib/diagnostico";
+import { avanceGeneral, externosAuditoria, pasos, siguientePaso } from "@/lib/progreso";
+import { capitulosQueCumplen, pendientesTotales } from "@/lib/revision";
+import { CAPITULOS } from "@/content/capitulos";
 
 const fmt = (iso: string) => iso.split("-").reverse().join("/");
 
+function Indicador({ etiqueta, valor, sub, tono = "marca" }: { etiqueta: string; valor: string; sub: string; tono?: "marca" | "ok" | "warn" }) {
+  const color = { marca: "text-brand-700", ok: "text-ok", warn: "text-warn" }[tono];
+  return (
+    <div className="vidrio rounded-2xl p-4">
+      <p className="etiqueta-mono text-[10px] text-muted">{etiqueta}</p>
+      <p className={`etiqueta-mono mt-1.5 text-3xl font-semibold normal-case tracking-tight ${color}`}>{valor}</p>
+      <p className="mt-0.5 text-xs text-muted">{sub}</p>
+    </div>
+  );
+}
+
 export default function Inicio() {
-  const { estado, avisos, listo } = useRit();
+  const { estado, avisos, urgentes, listo } = useRit();
   const lista = pasos(estado);
   const avance = avanceGeneral(lista);
   const siguiente = siguientePaso(lista);
@@ -18,41 +32,46 @@ export default function Inicio() {
   const proximos = avisos.filter((a) => !a.hecho && a.fecha >= hoy).slice(0, 4);
   const vencidos = avisos.filter((a) => !a.hecho && a.fecha < hoy);
   const nombre = estado.empresa.nombre_comercial || estado.empresa.razon_social;
+  const cumplen = capitulosQueCumplen(estado.capitulos);
+  const pend = pendientesTotales(estado.capitulos);
+  const aud = auditar(estado.capitulos, estado.manuales, externosAuditoria(estado));
 
   return (
     <Pagina
-      titulo={nombre ? `Reglamento de ${nombre}` : "Su Reglamento Interior de Trabajo"}
-      descripcion="Siga los pasos en orden: el sistema redacta, revisa y le recuerda lo que falta hasta que el reglamento esté aprobado y en vigor."
+      titulo={nombre ? `Centro de mando · ${nombre}` : "Centro de mando"}
+      descripcion="El sistema redacta, revisa y le recuerda lo que falta hasta que el reglamento esté aprobado y en vigor."
+      ancho="max-w-6xl"
     >
       {!listo ? <p role="status" className="text-sm text-muted">Cargando…</p> : (
         <>
-          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-            <Tarjeta>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-muted">Avance general</p>
-                  <p className="text-5xl font-extrabold tracking-tight text-brand-700">{avance}%</p>
-                </div>
-                {siguiente ? (
-                  <Link href={siguiente.href}><Boton>Continuar: {siguiente.titulo} →</Boton></Link>
-                ) : (
-                  <Insignia tono="ok">Todo completo</Insignia>
-                )}
-              </div>
-              <div className="mt-4"><Progreso valor={avance} etiqueta="Avance general del reglamento" /></div>
-              {siguiente && <p className="mt-3 text-sm text-muted"><b className="text-ink">Siguiente paso:</b> {siguiente.descripcion}</p>}
+          <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
+            <Tarjeta className="borde-neon grid place-items-center">
+              <Anillo valor={avance} etiqueta="Avance general del reglamento" tamano={200}>
+                <p className="etiqueta-mono text-5xl font-semibold normal-case tracking-tight degradado-texto">{avance}%</p>
+                <p className="etiqueta-mono mt-1 text-[10px] text-muted">completado</p>
+              </Anillo>
             </Tarjeta>
 
-            <Tarjeta titulo="Próximos avisos" acciones={<Link href="/calendario" className="text-sm font-semibold text-brand-700 hover:underline">Ver calendario</Link>}>
-              {vencidos.length > 0 && <Aviso tono="danger" className="mb-3">{vencidos.length} aviso(s) vencido(s). Revíselos en el calendario.</Aviso>}
-              {proximos.length === 0 ? <p className="text-sm text-muted">No hay avisos próximos.</p> : (
-                <ul className="space-y-2">
-                  {proximos.map((a) => (
-                    <li key={a.clave} className="flex gap-3 text-sm"><time className="w-20 shrink-0 font-bold text-brand-700" dateTime={a.fecha}>{fmt(a.fecha)}</time><span>{a.titulo}</span></li>
-                  ))}
-                </ul>
-              )}
+            <Tarjeta className="flex flex-col justify-between">
+              <div>
+                <p className="etiqueta-mono text-[10px] text-brand-600">{siguiente ? "Siguiente misión" : "Misión cumplida"}</p>
+                <h2 className="mt-1.5 text-2xl font-semibold tracking-tight">{siguiente ? siguiente.titulo : "Su reglamento está completo"}</h2>
+                <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
+                  {siguiente ? siguiente.descripcion : "Todos los pasos están hechos. Mantenga el calendario al día y revise el reglamento cada año."}
+                </p>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                {siguiente ? <Link href={siguiente.href}><Boton>Continuar →</Boton></Link> : <Insignia tono="ok">Todo completo</Insignia>}
+                <Link href="/calendario"><Boton variante="secundario">Ver calendario</Boton></Link>
+              </div>
             </Tarjeta>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Indicador etiqueta="Capítulos" valor={`${cumplen}/${CAPITULOS.length}`} sub="cumplen los requisitos" tono={cumplen === CAPITULOS.length ? "ok" : "marca"} />
+            <Indicador etiqueta="Auditoría IGT" valor={`${aud.porcentaje}%`} sub="criterios cumplidos" tono={aud.porcentaje >= 90 ? "ok" : "marca"} />
+            <Indicador etiqueta="Por completar" valor={String(pend)} sub="datos [COMPLETAR]" tono={pend === 0 ? "ok" : "warn"} />
+            <Indicador etiqueta="Avisos urgentes" valor={String(urgentes)} sub="vencidos o en 7 días" tono={urgentes === 0 ? "ok" : "warn"} />
           </div>
 
           {!estado.diagnostico.completo && (
@@ -67,23 +86,36 @@ export default function Inicio() {
             </Aviso>
           )}
 
-          <Tarjeta titulo="Ruta hacia un reglamento aprobado" descripcion="Cada paso se marca solo cuando el sistema comprueba que está completo." relleno={false}>
-            <ol className="divide-y divide-line">
-              {lista.map((p, i) => (
-                <li key={p.id}>
-                  <Link href={p.href} className="flex items-center gap-4 px-5 py-4 hover:bg-canvas">
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold ${p.hecho ? "bg-ok text-white" : "bg-brand-50 text-brand-700"}`} aria-hidden>{p.hecho ? "✓" : i + 1}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-bold text-ink">{p.titulo}</span>
-                      <span className="block text-sm text-muted">{p.descripcion}</span>
-                    </span>
-                    <span className="hidden w-40 sm:block"><Progreso valor={p.avance * 100} etiqueta={`Avance de ${p.titulo}`} tono={p.hecho ? "ok" : "marca"} /></span>
-                    <span className="w-44 text-right text-xs font-medium text-muted">{p.detalle}</span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </Tarjeta>
+          <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+            <Tarjeta titulo="Ruta hacia un reglamento aprobado" descripcion="Cada nodo se enciende solo cuando el sistema comprueba que el paso está completo.">
+              <ol className="relative ml-4 space-y-1 border-l border-line">
+                {lista.map((p, i) => (
+                  <li key={p.id} className="relative pl-7">
+                    <span aria-hidden className={`absolute -left-[13px] top-4 grid h-6 w-6 place-items-center rounded-full border text-[11px] font-bold ${p.hecho ? "border-ok bg-ok/20 text-ok shadow-[0_0_14px_rgba(74,222,128,0.55)]" : p.avance > 0 ? "border-brand-600 bg-brand-50 text-brand-700 shadow-[0_0_12px_rgba(34,211,238,0.45)]" : "border-line bg-solid text-muted"}`}>{p.hecho ? "✓" : i + 1}</span>
+                    <Link href={p.href} className="group block rounded-xl px-3 py-3 transition-colors hover:bg-white/[0.05]">
+                      <span className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-semibold group-hover:text-brand-800">{p.titulo}</span>
+                        <span className="etiqueta-mono shrink-0 text-[10px] text-muted">{p.detalle}</span>
+                      </span>
+                      <span className="mt-0.5 block text-sm text-muted">{p.descripcion}</span>
+                      <span className="mt-2 block"><Progreso valor={p.avance * 100} etiqueta={`Avance de ${p.titulo}`} tono={p.hecho ? "ok" : "marca"} /></span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </Tarjeta>
+
+            <Tarjeta titulo="Señales próximas" acciones={<Link href="/calendario" className="text-sm font-semibold text-brand-700 hover:underline">Calendario</Link>}>
+              {vencidos.length > 0 && <Aviso tono="danger" className="mb-3">{vencidos.length} aviso(s) vencido(s).</Aviso>}
+              {proximos.length === 0 ? <p className="text-sm text-muted">No hay avisos próximos.</p> : (
+                <ul className="space-y-3">
+                  {proximos.map((a) => (
+                    <li key={a.clave} className="flex gap-3 text-sm"><time className="etiqueta-mono w-[88px] shrink-0 text-xs font-semibold normal-case text-brand-700" dateTime={a.fecha}>{fmt(a.fecha)}</time><span>{a.titulo}</span></li>
+                  ))}
+                </ul>
+              )}
+            </Tarjeta>
+          </div>
         </>
       )}
     </Pagina>

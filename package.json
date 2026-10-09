@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:db": "bash tests/db/run.sh"
+    "test:db": "bash tests/db/run.sh",
+    "demo": "vite build --config demo/vite.config.ts && node demo/copiar.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -33,16 +34,20 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "jszip": "^3.10.2",
     "playwright-core": "^1.64.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^7.3.7",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^3.2.7"
   }
 }
