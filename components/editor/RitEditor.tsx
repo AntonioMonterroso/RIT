@@ -1,0 +1,243 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
+import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
+import { saveAs } from "file-saver";
+import { CAPITULOS, CAPITULO_POR_KEY, type CapituloKey } from "@/content/capitulos";
+import { BLOQUES, CRITERIOS } from "@/content/checklist";
+import { auditar, capituloCompleto, textoPlano } from "@/lib/auditoria";
+import { generarDocxBlob, type Nodo } from "@/lib/docx";
+import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit } from "@/lib/almacen";
+import { Cinta } from "./Cinta";
+import { SaltoPagina } from "./SaltoPagina";
+
+type Vista = "redaccion" | "auditoria" | "empresa";
+
+const SEMAFORO = {
+  listo: { clase: "bg-green-100 text-green-800 border-green-300", texto: "Listo para presentar a la IGT" },
+  riesgo: { clase: "bg-amber-100 text-amber-800 border-amber-300", texto: "Riesgo de prevención por la IGT" },
+  rechazo: { clase: "bg-red-100 text-red-800 border-red-300", texto: "Documentación incompleta" },
+} as const;
+
+export default function RitEditor() {
+  const [estado, setEstado] = useState<EstadoRit>(ESTADO_INICIAL);
+  const [listo, setListo] = useState(false);
+  const [vista, setVista] = useState<Vista>("redaccion");
+  const [capitulo, setCapitulo] = useState<CapituloKey>("mod_1");
+  const capRef = useRef(capitulo);
+  capRef.current = capitulo;
+  const estadoRef = useRef(estado);
+  estadoRef.current = estado;
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Placeholder.configure({ placeholder: "Redacte aquí las cláusulas de este capítulo…" }),
+      Table.configure({ resizable: false }),
+      TableRow, TableHeader, TableCell,
+      SaltoPagina,
+    ],
+    editorProps: { attributes: { "aria-label": "Contenido del capítulo", spellcheck: "true", lang: "es" } },
+    onUpdate: ({ editor: e }) => {
+      const key = capRef.current;
+      const json = e.getJSON() as Nodo;
+      setEstado((s) => ({ ...s, capitulos: { ...s.capitulos, [key]: json } }));
+    },
+  });
+
+  // Carga inicial del borrador (solo en el navegador).
+  useEffect(() => {
+    setEstado(cargarBorrador());
+    setListo(true);
+  }, []);
+
+  // Guardado automático con espera de 600 ms.
+  useEffect(() => {
+    if (!listo) return;
+    const t = setTimeout(() => guardarBorrador(estado), 600);
+    return () => clearTimeout(t);
+  }, [estado, listo]);
+
+  // Al cerrar o recargar la pestaña se guarda de inmediato lo que esté pendiente.
+  useEffect(() => {
+    if (!listo) return;
+    const volcar = () => guardarBorrador(estadoRef.current);
+    window.addEventListener("pagehide", volcar);
+    document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && volcar());
+    return () => window.removeEventListener("pagehide", volcar);
+  }, [listo]);
+
+  // Cambio de capítulo o carga del borrador: se vuelca el contenido en el editor.
+  useEffect(() => {
+    if (!editor || !listo) return;
+    const doc = estadoRef.current.capitulos[capitulo];
+    editor.commands.setContent(doc ?? "", { emitUpdate: false });
+  }, [editor, capitulo, listo]);
+
+  const insertarClausula = useCallback(() => {
+    if (!editor) return;
+    const texto = CAPITULO_POR_KEY[capRef.current].estandar;
+    editor.chain().focus("end").insertContent({ type: "paragraph", content: [{ type: "text", text: texto }] }).run();
+  }, [editor]);
+
+  const exportar = async () => {
+    const blob = await generarDocxBlob({ empresa: estado.empresa, capitulos: estado.capitulos });
+    saveAs(blob, `RIT_${(estado.empresa.nombre_comercial || estado.empresa.razon_social || "empresa").replace(/\s+/g, "_")}.docx`);
+  };
+
+  const resultado = auditar(estado.capitulos, estado.manuales);
+  const sem = SEMAFORO[resultado.semaforo];
+  const setEmpresa = (campo: keyof EstadoRit["empresa"], valor: string) =>
+    setEstado((s) => ({ ...s, empresa: { ...s.empresa, [campo]: valor } }));
+
+  return (
+    <div className="flex h-screen flex-col">
+      <header className="flex items-center justify-between bg-[var(--primary)] px-5 py-2.5 text-white">
+        <div className="flex items-center gap-3">
+          <span className="rounded bg-white px-2 py-0.5 text-sm font-extrabold text-[var(--primary)]">RIT</span>
+          <h1 className="text-base font-semibold">
+            {estado.empresa.nombre_comercial || estado.empresa.razon_social || "Reglamento Interior de Trabajo"}
+          </h1>
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="opacity-80" aria-live="polite">
+            {listo && estado.actualizado ? "Guardado" : ""}
+          </span>
+          <button onClick={exportar} className="rounded bg-white/15 px-3 py-1.5 font-semibold hover:bg-white/25">
+            Descargar Word (.docx)
+          </button>
+        </div>
+      </header>
+
+      <nav className="flex border-b border-slate-200 bg-white px-3" aria-label="Secciones">
+        {([["redaccion", "Redacción"], ["auditoria", "Auditoría IGT"], ["empresa", "Datos de la empresa"]] as const).map(([k, t]) => (
+          <button
+            key={k}
+            onClick={() => setVista(k)}
+            aria-current={vista === k ? "page" : undefined}
+            className={`border-b-2 px-4 py-2.5 text-sm font-semibold ${
+              vista === k ? "border-[var(--primary)] text-[var(--primary)]" : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </nav>
+
+      {vista === "redaccion" && (
+        <div className="flex min-h-0 flex-1">
+          <aside className="w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white">
+            <p className="border-b border-slate-200 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Estructura del reglamento
+            </p>
+            <ul>
+              {CAPITULOS.map((c) => {
+                const largo = textoPlano(estado.capitulos[c.key]).length;
+                const estadoCap = capituloCompleto(estado.capitulos[c.key]) ? "completo" : largo > 0 ? "parcial" : "vacío";
+                return (
+                  <li key={c.key}>
+                    <button
+                      onClick={() => setCapitulo(c.key)}
+                      aria-current={capitulo === c.key ? "true" : undefined}
+                      className={`flex w-full items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 text-left text-sm ${
+                        capitulo === c.key ? "border-l-4 border-l-[var(--primary)] bg-[var(--primary-soft)] font-bold text-[var(--primary)]" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <span>{c.titulo}</span>
+                      <span
+                        title={estadoCap}
+                        className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                          estadoCap === "completo" ? "bg-green-500" : estadoCap === "parcial" ? "bg-amber-500" : "bg-slate-300"
+                        }`}
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </aside>
+          <main className="flex min-w-0 flex-1 flex-col">
+            {editor && <Cinta editor={editor} onClausula={insertarClausula} />}
+            <div className="flex-1 overflow-auto bg-slate-200 px-6 py-8">
+              <div className="hoja">
+                <h2 className="mb-6 text-center text-lg font-bold uppercase" style={{ fontFamily: "inherit" }}>
+                  {CAPITULO_POR_KEY[capitulo].titulo}
+                </h2>
+                <EditorContent editor={editor} />
+              </div>
+            </div>
+          </main>
+        </div>
+      )}
+
+      {vista === "auditoria" && (
+        <main className="flex-1 overflow-auto p-6">
+          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-[280px_1fr]">
+            <section className="h-fit rounded-lg border border-slate-200 bg-white p-5 text-center">
+              <p className="text-5xl font-extrabold text-[var(--primary)]">{resultado.porcentaje}%</p>
+              <p className="mt-1 text-xs font-bold uppercase text-slate-500">
+                {resultado.marcados} de {resultado.total} criterios
+              </p>
+              <p className={`mt-4 rounded border px-3 py-2 text-sm font-bold ${sem.clase}`} role="status">{sem.texto}</p>
+            </section>
+            <section className="rounded-lg border border-slate-200 bg-white p-5">
+              {(Object.keys(BLOQUES) as (keyof typeof BLOQUES)[]).map((b) => (
+                <div key={b} className="mb-5 last:mb-0">
+                  <h3 className="mb-2 rounded bg-slate-100 px-3 py-2 text-sm font-bold">Bloque {b}: {BLOQUES[b]}</h3>
+                  {CRITERIOS.filter((c) => c.bloque === b).map((c) => {
+                    const auto = !!c.capitulo;
+                    const marcado = auto ? !!resultado.automaticos[c.id] : !!estado.manuales[c.id];
+                    return (
+                      <label key={c.id} className="flex items-start gap-3 border-b border-slate-100 py-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={marcado}
+                          disabled={auto}
+                          onChange={(e) => setEstado((s) => ({ ...s, manuales: { ...s.manuales, [c.id]: e.target.checked } }))}
+                          className="mt-0.5 h-4 w-4"
+                        />
+                        <span className="flex-1">{c.texto}</span>
+                        <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${auto ? "bg-sky-100 text-sky-800" : "bg-amber-100 text-amber-800"}`}>
+                          {auto ? "Automático" : "Manual"}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ))}
+            </section>
+          </div>
+        </main>
+      )}
+
+      {vista === "empresa" && (
+        <main className="flex-1 overflow-auto p-6">
+          <form className="mx-auto max-w-xl space-y-4 rounded-lg border border-slate-200 bg-white p-6" onSubmit={(e) => e.preventDefault()}>
+            {([
+              ["razon_social", "Razón social (según patente)"],
+              ["nombre_comercial", "Nombre comercial"],
+              ["nit", "NIT"],
+              ["representante_legal", "Representante legal"],
+              ["departamento", "Departamento"],
+            ] as const).map(([campo, etiqueta]) => (
+              <label key={campo} className="block text-sm font-semibold">
+                {etiqueta}
+                <input
+                  value={estado.empresa[campo]}
+                  onChange={(e) => setEmpresa(campo, e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal"
+                />
+              </label>
+            ))}
+          </form>
+        </main>
+      )}
+    </div>
+  );
+}
