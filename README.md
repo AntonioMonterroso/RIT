@@ -19,9 +19,10 @@ Guía a la empresa de punta a punta, en este orden (`/inicio` muestra el avance 
 5. **Memorial** a la IGT, **trámite** (presentado, previo, aprobado) y **publicidad y vigencia** (15 días).
 6. **Formatos**: constancia de recibo, acta de divulgación, comunicado al personal y solicitud de reformas.
 7. **Calendario** con plazos, recordatorios propios y avisos generales; **biblioteca legal**.
-8. **Ajustes**: datos de la empresa y respaldo/restauración.
+8. **Vista previa** del reglamento completo con índice, impresión y PDF; **versiones** con restauración (se guarda una antes de reemplazar texto); **ayuda** con preguntas frecuentes y glosario.
+9. **Ajustes**: datos de la empresa, apariencia y respaldo/restauración.
 
-Dos temas, **Porcelana** (claro, pastel formal, por defecto) y **Pizarra** (oscuro), con interruptor. Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
+Tres paletas claras (**Arena**, por defecto, **Rosa empolvado** y **Salvia**) y una oscura (**Noche**), elegibles en Ajustes. Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Estado
 

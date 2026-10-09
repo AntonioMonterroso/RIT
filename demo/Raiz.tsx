@@ -15,6 +15,9 @@ import Publicidad from "@/components/vistas/Publicidad";
 import Plantillas from "@/components/vistas/Plantillas";
 import Formatos from "@/components/vistas/Formatos";
 import Ajustes from "@/components/vistas/Ajustes";
+import VistaPrevia from "@/components/vistas/VistaPrevia";
+import Versiones from "@/components/vistas/Versiones";
+import Ayuda from "@/components/vistas/Ayuda";
 import Bienvenida from "@/components/vistas/Bienvenida";
 import { usePathname } from "./shims/navigation";
 
@@ -22,6 +25,7 @@ const PANTALLAS: Record<string, ComponentType> = {
   "/inicio": Inicio, "/diagnostico": Diagnostico, "/puestos": Puestos, "/editor": Redaccion,
   "/auditoria": Auditoria, "/memorial": Memorial, "/tramite": Tramite, "/publicidad": Publicidad,
   "/plantillas": Plantillas, "/formatos": Formatos, "/biblioteca": Biblioteca, "/calendario": Calendario, "/ajustes": Ajustes,
+  "/vista-previa": VistaPrevia, "/versiones": Versiones, "/ayuda": Ayuda,
 };
 
 export default function Raiz() {

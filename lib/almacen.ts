@@ -13,6 +13,8 @@ export interface Empresa {
 
 export interface RecordatorioPropio { id: string; titulo: string; fecha: string; hecho: boolean }
 
+export interface Version { id: string; etiqueta: string; fecha: string; capitulos: EstadoRit["capitulos"] }
+
 export interface EstadoRit {
   empresa: Empresa;
   capitulos: Partial<Record<CapituloKey, Nodo>>;
@@ -20,6 +22,7 @@ export interface EstadoRit {
   memorial: DatosMemorial;
   publicacion: { fecha: string; medio: "" | "fijacion" | "folleto" | "ambos" };
   recordatorios: RecordatorioPropio[];
+  versiones: Version[];
   diagnostico: Diagnostico;
   puestos: Puesto[];
   tramite: Tramite;
@@ -33,6 +36,7 @@ export const ESTADO_INICIAL: EstadoRit = {
   memorial: MEMORIAL_INICIAL,
   publicacion: { fecha: "", medio: "" },
   recordatorios: [],
+  versiones: [],
   diagnostico: DIAGNOSTICO_INICIAL,
   puestos: [],
   tramite: TRAMITE_INICIAL,
@@ -52,6 +56,7 @@ export function fusionar(p: Partial<EstadoRit>): EstadoRit {
     tramite: { ...TRAMITE_INICIAL, ...p.tramite },
     puestos: p.puestos ?? [],
     recordatorios: p.recordatorios ?? [],
+    versiones: p.versiones ?? [],
     capitulos: p.capitulos ?? {},
     manuales: p.manuales ?? {},
   };

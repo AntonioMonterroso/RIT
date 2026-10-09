@@ -28,10 +28,13 @@ const lum = ([r, g, b]: RGBA) => {
 };
 const ratio = (a: RGBA, b: RGBA) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
-const claro = tokens(/\n:root \{([\s\S]*?)\n\}/);
-const oscuro = tokens(/:root\[data-tema="oscuro"\] \{([\s\S]*?)\n\}/, claro);
+// Arena es la base; Rosa y Salvia sobrescriben parte de los tokens; Noche (oscuro) gana sobre todas.
+const arena = tokens(/\n:root \{([\s\S]*?)\n\}/);
+const rosa = tokens(/:root\[data-paleta="rosa"\] \{([\s\S]*?)\n\}/, arena);
+const salvia = tokens(/:root\[data-paleta="salvia"\] \{([\s\S]*?)\n\}/, arena);
+const noche = tokens(/:root\[data-tema="oscuro"\] \{([\s\S]*?)\n\}/, arena);
 
-describe.each([["Porcelana (claro)", claro], ["Pizarra (oscuro)", oscuro]])("contraste · %s", (_n, t) => {
+describe.each([["Arena (claro)", arena], ["Rosa empolvado (claro)", rosa], ["Salvia (claro)", salvia], ["Noche (oscuro)", noche]])("contraste · %s", (_n, t) => {
   const canvas = color(t["canvas"]);
   const en = (k: string, fondo: RGBA = canvas) => sobre(color(t[k]), fondo);
   const tarjeta = sobre(color(t["surface"]), canvas);

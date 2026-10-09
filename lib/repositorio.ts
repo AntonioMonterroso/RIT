@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CAPITULOS, type CapituloKey } from "@/content/capitulos";
-import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit, type RecordatorioPropio } from "@/lib/almacen";
+import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit, type RecordatorioPropio, type Version } from "@/lib/almacen";
 import { MEMORIAL_INICIAL } from "@/lib/memorial";
 import { DIAGNOSTICO_INICIAL, TRAMITE_INICIAL, type Diagnostico, type Puesto, type Tramite } from "@/lib/tipos";
 import type { Nodo } from "@/lib/docx";
@@ -36,7 +36,7 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
 
   return {
     async cargar() {
-      const [docs, datos, check, memo, pub, recs, conf] = await Promise.all([
+      const [docs, datos, check, memo, pub, recs, conf, vers] = await Promise.all([
         db.from("rit_documentos").select("capitulo, contenido"),
         db.from("empresa_datos").select("*").maybeSingle(),
         db.from("checklist_igt").select("manuales").maybeSingle(),
@@ -44,8 +44,9 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
         db.from("publicaciones").select("fecha, medio").maybeSingle(),
         db.from("recordatorios_empresa").select("id, titulo, fecha, hecho"),
         db.from("rit_configuracion").select("diagnostico, puestos, tramite").maybeSingle(),
+        db.from("rit_versiones").select("id, etiqueta, snapshot, creada_en").order("creada_en", { ascending: false }),
       ]);
-      for (const r of [docs, datos, check, memo, pub, recs, conf]) {
+      for (const r of [docs, datos, check, memo, pub, recs, conf, vers]) {
         if (r.error) throw new Error(`No se pudo cargar el RIT: ${r.error.message}`);
       }
 
@@ -54,6 +55,9 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
         capitulos[fila.capitulo] = fila.contenido;
         ultimo.set(`doc:${fila.capitulo}`, JSON.stringify({ empresa_id: empresaId, capitulo: fila.capitulo, contenido: fila.contenido }));
       }
+      const versiones: Version[] = ((vers.data ?? []) as { id: string; etiqueta: string | null; snapshot: Version["capitulos"]; creada_en: string }[])
+        .map((v) => ({ id: v.id, etiqueta: v.etiqueta ?? "", fecha: v.creada_en, capitulos: v.snapshot }));
+      for (const v of versiones) ultimo.set(`ver:${v.id}`, JSON.stringify({ empresa_id: empresaId, id: v.id, etiqueta: v.etiqueta, snapshot: v.capitulos, creada_en: v.fecha }));
       const propios = (recs.data ?? []) as RecordatorioPropio[];
       for (const r of propios) ultimo.set(`rec:${r.id}`, JSON.stringify({ empresa_id: empresaId, ...r }));
       const cfg = conf.data as { diagnostico?: Diagnostico; puestos?: Puesto[]; tramite?: Tramite } | null;
@@ -69,6 +73,7 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
           medio: ((pub.data as { medio: EstadoRit["publicacion"]["medio"] } | null)?.medio ?? ""),
         },
         recordatorios: propios,
+        versiones,
         diagnostico: { ...DIAGNOSTICO_INICIAL, ...(cfg?.diagnostico ?? {}) },
         puestos: cfg?.puestos ?? [],
         tramite: { ...TRAMITE_INICIAL, ...(cfg?.tramite ?? {}) },
@@ -95,6 +100,18 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
       await upsertSiCambio("publicaciones", "pub", {
         empresa_id: empresaId, fecha: estado.publicacion.fecha || null, medio: estado.publicacion.medio,
       }, "empresa_id");
+      // Versiones: se escriben las nuevas y se borran las eliminadas (las versiones no se editan).
+      const idsVer = new Set(estado.versiones.map((v) => v.id));
+      for (const clave of [...ultimo.keys()]) {
+        if (!clave.startsWith("ver:") || idsVer.has(clave.slice(4))) continue;
+        const { error } = await db.from("rit_versiones").delete().eq("id", clave.slice(4));
+        if (error) throw new Error(`No se pudo guardar rit_versiones: ${error.message}`);
+        ultimo.delete(clave);
+      }
+      for (const v of estado.versiones) {
+        await upsertSiCambio("rit_versiones", `ver:${v.id}`, { empresa_id: empresaId, id: v.id, etiqueta: v.etiqueta, snapshot: v.capitulos, creada_en: v.fecha }, "id");
+      }
+
       // Recordatorios propios: se escriben los nuevos o editados y se borran los eliminados.
       const vigentes = new Set(estado.recordatorios.map((r) => r.id));
       for (const clave of [...ultimo.keys()]) {

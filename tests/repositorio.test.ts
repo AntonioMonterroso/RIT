@@ -11,6 +11,7 @@ function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
       const datos = filas[tabla] ?? [];
       const consulta = {
         select: () => consulta,
+        order: () => consulta,
         maybeSingle: async () => ({ data: datos[0] ?? null, error: null }),
         then: (res: (v: unknown) => unknown) => res({ data: datos, error: null }),
         delete: () => ({ eq: async (_c: string, id: unknown) => { borrados.push({ tabla, id }); return { error: null }; } }),
@@ -93,5 +94,26 @@ describe("repositorio Supabase", () => {
 
     await repo.guardar({ ...s0, recordatorios: [] });
     expect(borrados.map((b) => b.id).sort()).toEqual(["r1", "r2"]);
+  });
+
+  it("guarda y borra versiones del texto", async () => {
+    const snap = { mod_1: doc };
+    const { db, upserts, borrados } = falso({ rit_versiones: [{ id: "v1", etiqueta: "Primera", snapshot: snap, creada_en: "2026-10-09T10:00:00Z" }] });
+    const repo = repositorioSupabase(db, "emp-1");
+    const s0 = await repo.cargar();
+    expect(s0.versiones).toEqual([{ id: "v1", etiqueta: "Primera", fecha: "2026-10-09T10:00:00Z", capitulos: snap }]);
+
+    await repo.guardar(s0); // sin cambios
+    expect(upserts.some((u) => u.tabla === "rit_versiones")).toBe(false);
+
+    const nueva = { id: "v2", etiqueta: "Segunda", fecha: "2026-10-10T10:00:00Z", capitulos: snap };
+    await repo.guardar({ ...s0, versiones: [nueva, ...s0.versiones] });
+    const v = upserts.filter((u) => u.tabla === "rit_versiones");
+    expect(v).toHaveLength(1);
+    expect(v[0].fila).toMatchObject({ empresa_id: "emp-1", id: "v2", etiqueta: "Segunda", snapshot: snap });
+    expect(v[0].conflicto).toBe("id");
+
+    await repo.guardar({ ...s0, versiones: [] });
+    expect(borrados.filter((b) => b.tabla === "rit_versiones").map((b) => b.id).sort()).toEqual(["v1", "v2"]);
   });
 });

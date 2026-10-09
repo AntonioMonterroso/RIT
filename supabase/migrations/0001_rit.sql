@@ -53,7 +53,8 @@ create table public.rit_versiones (
   empresa_id uuid not null references public.empresas (id) on delete cascade,
   etiqueta text,
   snapshot jsonb not null,
-  creada_en timestamptz not null default now()
+  creada_en timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
 );
 
 create table public.checklist_igt (

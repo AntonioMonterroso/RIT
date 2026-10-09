@@ -8,6 +8,7 @@ import { GIROS, type Diagnostico as Diag, type Giro, type Marca } from "@/lib/ti
 import { evaluar, obligatorio, recomendaciones } from "@/lib/diagnostico";
 import { generarBorrador } from "@/lib/generador";
 import { revisarCapitulo } from "@/lib/revision";
+import { guardarVersion } from "@/lib/versiones";
 import { CAPITULOS } from "@/content/capitulos";
 
 const TONO = { info: "info", aviso: "warn", alerta: "danger" } as const;
@@ -25,7 +26,7 @@ export default function Diagnostico() {
 
   const generar = () => {
     const { capitulos } = generarBorrador({ empresa: estado.empresa, diagnostico: d, puestos: estado.puestos });
-    actualizar((s) => ({ ...s, capitulos, diagnostico: { ...s.diagnostico, completo: true } }));
+    actualizar((s) => ({ ...guardarVersion(s, "Antes de generar el borrador"), capitulos, diagnostico: { ...s.diagnostico, completo: true } }));
     router.push("/editor");
   };
 

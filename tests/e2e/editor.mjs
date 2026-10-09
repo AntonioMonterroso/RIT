@@ -180,6 +180,53 @@ await ir("/plantillas");
 await page.getByRole("searchbox", { name: "Buscar" }).fill("acoso");
 verificar(await page.getByText("Prevención del acoso laboral y sexual").isVisible(), "la búsqueda de cláusulas encuentra 'acoso'");
 
+// 12c. Paletas, vista previa, versiones y ayuda
+await ir("/ajustes");
+const paleta = () => page.evaluate(() => document.documentElement.dataset.paleta ?? "arena");
+const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+verificar((await paleta()) === "arena", "la paleta por defecto es Arena");
+const bgArena = await bg();
+await page.getByRole("radio", { name: /Rosa empolvado/ }).click();
+verificar((await paleta()) === "rosa" && (await bg()) !== bgArena, "elegir Rosa empolvado cambia la paleta y el fondo");
+await page.waitForTimeout(900);
+await page.screenshot({ path: path.join(OUT, "08_paleta_rosa.png") });
+await page.getByRole("radio", { name: /Salvia/ }).click();
+verificar((await paleta()) === "salvia", "elegir Salvia cambia la paleta");
+await page.reload();
+await page.getByRole("radio", { name: /Salvia/ }).waitFor();
+verificar((await paleta()) === "salvia", "la paleta elegida se recuerda al recargar");
+await page.waitForTimeout(900);
+await page.screenshot({ path: path.join(OUT, "08_paleta_salvia.png") });
+await page.getByRole("radio", { name: /Arena/ }).click();
+
+await ir("/vista-previa");
+await page.getByRole("heading", { name: "Índice" }).waitFor();
+verificar((await texto()).includes("Artículo 1. Objeto") && (await texto()).includes("REGLAMENTO INTERIOR DE TRABAJO"), "la vista previa muestra portada, índice y el reglamento completo");
+await page.getByRole("button", { name: /Capítulo VIII/ }).click();
+verificar(await page.getByRole("heading", { name: /Régimen Disciplinario/ }).isVisible(), "el índice lleva al capítulo");
+await page.waitForTimeout(600);
+await page.screenshot({ path: path.join(OUT, "09_vista_previa.png") });
+
+await ir("/versiones");
+await page.getByLabel("Nombre de la versión").fill("Versión de prueba");
+await page.getByRole("button", { name: "Guardar versión" }).click();
+await page.getByText("Versión guardada.").waitFor();
+await ir("/editor?cap=mod_1");
+await page.locator(".hoja .ProseMirror").waitFor();
+await page.getByRole("button", { name: "Regenerar este capítulo" }).click();
+await page.getByRole("button", { name: "Sí, regenerar" }).click();
+await ir("/versiones");
+verificar((await texto()).includes("Antes de regenerar: Capítulo I"), "regenerar un capítulo guarda antes una versión automática");
+await page.getByRole("button", { name: "Restaurar Versión de prueba" }).click();
+await page.getByRole("button", { name: "Sí, restaurar" }).click();
+await page.getByText("Se restauró «Versión de prueba».").waitFor();
+verificar((await texto()).includes("Antes de restaurar «Versión de prueba»"), "restaurar respalda el texto actual y lo restituye");
+
+await ir("/ayuda");
+await page.getByRole("searchbox", { name: "Buscar en la ayuda" }).fill("previo");
+await page.getByText("¿Qué es un «previo»?").click();
+verificar(await page.getByText(/observación de la IGT/).isVisible(), "la ayuda filtra y despliega la respuesta");
+
 // 12b. Buscador de comandos (Ctrl+K)
 await ir("/inicio");
 await page.waitForLoadState("networkidle");

@@ -15,6 +15,7 @@ import { generarCapitulo, nodosDeClausula } from "@/lib/generador";
 import { leerParametro } from "@/lib/consulta";
 import { renumerar } from "@/lib/numeracion";
 import { pendientesTotales, revisarCapitulo } from "@/lib/revision";
+import { guardarVersion } from "@/lib/versiones";
 import type { Nodo } from "@/lib/docx";
 import { Cinta } from "./Cinta";
 import { Pendientes } from "./Pendientes";
@@ -86,7 +87,7 @@ export default function Redaccion() {
   };
 
   const regenerar = () => {
-    actualizar((s) => renumerarEstado({ ...s, capitulos: { ...s.capitulos, [cap]: generarCapitulo(cap, s) } }));
+    actualizar((s) => renumerarEstado({ ...guardarVersion(s, `Antes de regenerar: ${CAPITULO_POR_KEY[cap].titulo}`), capitulos: { ...s.capitulos, [cap]: generarCapitulo(cap, s) } }));
     setConfirmar(false);
     setNota("Capítulo regenerado con las cláusulas de su diagnóstico.");
   };

@@ -16,18 +16,18 @@ Regla: **las pantallas no usan colores sueltos** (`slate-*`, `#hex`); usan los t
 
 Pendiente: pruebas con lector de pantalla reales.
 
-## 2. Temas «Porcelana» y «Pizarra»
+## 2. Paletas y temas
 
-Misma estructura y mismos tokens en dos paletas, con un interruptor en la cabecera. Se recuerda la elección (`localStorage`, clave `rit:tema`) y un script previo al pintado evita el parpadeo. Por defecto: **Porcelana**.
+Los mismos tokens en cuatro combinaciones. Se elige en **Ajustes → Apariencia** y el interruptor de la cabecera alterna claro/oscuro. Se recuerda en el navegador (`rit:paleta`, `rit:tema`) y un script previo al pintado evita el parpadeo. Por defecto: **Arena**, claro.
 
-| | Porcelana (claro, por defecto) | Pizarra (oscuro) |
-| --- | --- | --- |
-| Carácter | Papel azulado, pasteles suaves (celeste, lavanda, rosa) y tinta azul marino | Azul pizarra apagado con acentos periwinkle y lavanda |
-| Fondo | `#f3f5fa` con aurora pastel y rejilla tenue | `#0e131f` con aurora azul-violeta muy suave |
-| Texto | `ink` 13:1 · `muted` 5.6:1 | `ink` 15:1 · `muted` 7.7:1 |
-| Acento | `brand-700` `#33508f` (texto) · `brand-600` `#5877c0` (íconos) | `brand-700` `#b9c9f3` · `brand-600` `#8aa4e6` |
-| Botón principal | Degradado `#4a67b0 → #6a5fb5`, texto blanco (5.4:1) | Degradado `#8aa4e6 → #a99be0`, texto oscuro (7.5:1) |
-| Estados | Fondos pastel (`#e4f3ea`, `#fbf0d8`, `#fae7e7`, `#e5eefa`) con texto ≥ 5.2:1 | Fondos translúcidos con texto pastel ≥ 6.5:1 |
+| Paleta | Carácter | Acento (botones, enlaces) | Apoyo |
+| --- | --- | --- | --- |
+| **Arena** (por defecto) | Arena cálida `#f6f1e8` | Verde salvia `#3d5f4d` / `#436652` | Rosa empolvado `#a0606f` |
+| **Rosa empolvado** | Rosa suave `#f8eff0` | Rosa mauve `#7a4555` / `#84495a` | Salvia `#55806a` |
+| **Salvia** | Verde grisáceo `#eff3ee` | Salvia profunda `#34604a` / `#3e6851` | Rosa y arena |
+| **Noche** (oscuro) | Carbón verdoso `#171a18` | Salvia clara `#94b8a2` | Rosa claro `#dba9b3` |
+
+Estados (éxito, aviso, error, información) en pasteles suaves con texto ≥ 5:1 en cada paleta.
 
 | Grupo | Tokens |
 | --- | --- |
@@ -44,7 +44,7 @@ Clases del tema (capa `components`, para que las utilidades de Tailwind puedan s
 Reglas:
 - Las pantallas usan tokens, nunca `slate-*`, `#hex` ni `bg-black/…` / `bg-white/…` (no funcionan en ambos temas).
 - Todo CSS propio que pueda chocar con utilidades va en una capa (`@layer`); fuera de capas siempre gana al utilitario.
-- **El contraste se mide, no se supone**: `tests/contraste.test.ts` lee los tokens de `globals.css` y exige ≥ 4.5:1 en texto, enlaces, botones y estados, y ≥ 3:1 en el acento de íconos, en los dos temas. Si cambia un color y la prueba falla, el color no sirve.
+- **El contraste se mide, no se supone**: `tests/contraste.test.ts` lee los tokens de `globals.css` y exige ≥ 4.5:1 en texto, enlaces, botones y estados, y ≥ 3:1 en el acento de íconos, en las cuatro combinaciones. Si cambia un color y la prueba falla, el color no sirve.
 - Pasteles para superficies y tintes; tonos medios para lo que se lee o se pulsa.
 
 ## 3. Componentes
@@ -106,3 +106,9 @@ Estado sin datos: un título y, opcionalmente, qué hacer.
 ## 7. Demostración de un solo archivo
 
 `npm run demo` genera `RIT-demo.html` (≈1.3 MB, fuentes incluidas, sin servidor). Sustituye el enrutador de Next por uno basado en `#` (`demo/shims`) y guarda los datos en el navegador. La misma prueba de punta a punta corre contra ese archivo: `MODO=hash BASE_URL=file:///…/RIT-demo.html node tests/e2e/editor.mjs`.
+
+## 8. Cómo agregar una paleta
+
+1. Copie un bloque `:root[data-paleta="…"]` de `app/globals.css` y cambie lienzo, líneas, acento (`brand-*`), `violeta` (apoyo), degradados y auroras. Los estados y los tonos de `ink`/`muted` se heredan de Arena; sobrescríbalos solo si no pasan el contraste.
+2. Agréguela a `PALETAS` en `lib/tema.ts` y a la lista de `tests/contraste.test.ts`.
+3. Corra `npm test`: si algún par de colores no cumple 4.5:1, la prueba lo dice.
