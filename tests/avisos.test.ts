@@ -29,4 +29,12 @@ describe("avisos", () => {
   it("sin publicación no hay aviso de vigencia", () => {
     expect(construirAvisos(ESTADO_INICIAL, [], "2026-10-09").some((a) => a.clave === "vigencia")).toBe(false);
   });
+
+  it("al presentar el trámite agenda el seguimiento referencial a 30 días hábiles", () => {
+    const e = { ...ESTADO_INICIAL, tramite: { ...ESTADO_INICIAL.tramite, estado: "presentado" as const, fechaPresentacion: "2026-10-09" } };
+    const a = construirAvisos(e, [], "2026-10-09").find((x) => x.clave === "seguimiento-igt");
+    expect(a?.fecha).toBe("2026-11-23");
+    expect(a?.detalle).toMatch(/no es un plazo legal confirmado/);
+    expect(construirAvisos({ ...e, tramite: { ...e.tramite, estado: "aprobado" } }, [], "2026-10-09").some((x) => x.clave === "seguimiento-igt")).toBe(false);
+  });
 });

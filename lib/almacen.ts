@@ -35,6 +35,8 @@ export interface EstadoRit {
   aprobaciones: Aprobacion[];
   rutina: Rutina;
   novedades: NovedadesAtendidas;
+  /** Casillas de las guías (SSO, documentos del trámite en línea). */
+  checks: Record<string, boolean>;
   actualizado: string | null;
 }
 
@@ -52,6 +54,7 @@ export const ESTADO_INICIAL: EstadoRit = {
   aprobaciones: [],
   rutina: {},
   novedades: {},
+  checks: {},
   actualizado: null,
 };
 
@@ -72,6 +75,7 @@ export function fusionar(p: Partial<EstadoRit>): EstadoRit {
     aprobaciones: p.aprobaciones ?? [],
     rutina: p.rutina ?? {},
     novedades: p.novedades ?? {},
+    checks: p.checks ?? {},
     capitulos: p.capitulos ?? {},
     manuales: p.manuales ?? {},
   };

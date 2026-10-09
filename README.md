@@ -21,9 +21,11 @@ Guía a la empresa de punta a punta, en este orden (`/inicio` muestra el avance 
 7. **Calendario** con plazos, recordatorios propios y avisos generales; **biblioteca legal**.
 8. **Vista previa** del reglamento completo con índice, impresión y PDF; **versiones** con restauración (se guarda una antes de reemplazar texto); **ayuda** con preguntas frecuentes y glosario.
 9. **Mantenimiento** (lo que hace que la empresa siga usando el sistema después de la aprobación): **novedades legales** con aplicación guiada (respaldo previo + recordatorio de reforma ante la IGT), **rutina mensual** con racha, **bitácora** armada sola y **informe de cumplimiento** (.docx), **salud del reglamento** y **aprobaciones internas** con huella SHA-256 y acta descargable.
-10. **Equipo**: roles administrador / redactor / revisor / lector (quien redacta no aprueba), invitaciones con código de un solo uso, aplicados también en la base (RLS).
-11. **Plan**: 14 días de prueba; al vencer, el sistema pasa a **solo lectura** (se puede ver y descargar todo, incluido el respaldo) hasta activar el plan. El trabajo de la empresa nunca queda retenido.
-12. **Ajustes**: datos de la empresa, apariencia y respaldo/restauración.
+10. **Verificación legal y coherencia**: alertas cuando una cifra del texto queda bajo un mínimo legal (vacaciones, jornada, horas extra, periodo de prueba, aguinaldo y bono 14) o hay expresiones delicadas; revisión de coherencia (horario del diagnóstico, numeración, remisiones, puestos); fechas legales anuales en el calendario; guía de **seguridad y salud ocupacional** y guía del **trámite en línea (RERIT)**.
+11. **Revisión legal por abogado**: cada pieza de contenido legal tiene una huella; el abogado la valida con nombre y colegiado y, si el contenido cambia, la validación queda desactualizada. Incluye un paquete .docx para revisar fuera del sistema.
+12. **Equipo**: roles administrador / redactor / revisor / lector (quien redacta no aprueba), invitaciones con código de un solo uso, aplicados también en la base (RLS).
+13. **Plan**: 14 días de prueba; al vencer, el sistema pasa a **solo lectura** (se puede ver y descargar todo, incluido el respaldo) hasta activar el plan. El trabajo de la empresa nunca queda retenido.
+14. **Ajustes**: datos de la empresa, apariencia y respaldo/restauración.
 
 Tres paletas claras (**Arena**, por defecto, **Rosa empolvado** y **Salvia**) y una oscura (**Noche**), elegibles en Ajustes. Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de diseño: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
@@ -38,7 +40,7 @@ Tres paletas claras (**Arena**, por defecto, **Rosa empolvado** y **Salvia**) y 
 | Portada con planes (`/`, precios editables en `content/planes.ts`; **los montos son de ejemplo**) | Hecho |
 | Equipo con roles, aprobaciones inmutables, invitaciones, prueba de 14 días y solo lectura (pruebas RLS incluidas) | Hecho en modo local y en el esquema; sin conectar a Supabase real |
 | Cobro con Stripe (el botón «Activar plan» es de demostración), correos de aviso | Pendiente |
-| Revisión legal de los textos | **Pendiente (imprescindible antes de vender)** |
+| Revisión legal de los textos | **Pendiente (imprescindible antes de vender).** El sistema ya tiene el panel y el paquete para el abogado; las normas citadas se tomaron de fuentes secundarias porque el texto oficial no estuvo accesible |
 
 Sin variables de entorno el borrador se guarda en el navegador. Para activar cuentas:
 

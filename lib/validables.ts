@@ -6,6 +6,7 @@ import { clausulasDe, type Ctx } from "@/content/plantillas";
 import { contexto } from "@/lib/generador";
 import { ESTADO_INICIAL } from "@/lib/almacen";
 import { fechasLegales } from "@/lib/fechasLegales";
+import { RERIT_DOCS, RERIT_NOTA, RERIT_PASOS, SSO_FUENTES, SSO_ITEMS, SSO_NOTA } from "@/content/guiasLegales";
 import { LIMITES } from "@/lib/jornada";
 import { REGLAS } from "@/lib/legal";
 import { sha256Hex } from "@/lib/sha256";
@@ -62,6 +63,8 @@ export function validables(): Validable[] {
   out.push(el("otros:jornada", "Otros criterios", "Límites de jornada", Object.entries(LIMITES).map(([k, v]) => `${v.nombre}: ${v.diarias} horas diarias, ${v.semanales} semanales (${k})`).join("\n")));
   out.push(el("otros:checklist", "Otros criterios", "Los 16 criterios de la IGT", CRITERIOS.map((c) => `${c.id}. ${c.texto}`).join("\n")));
   out.push(el("otros:fechas", "Otros criterios", "Fechas legales anuales (bono 14 y aguinaldo)", fechasLegales("2026-01-01", 400).slice(0, 3).map((f) => `${f.titulo}: ${f.detalle}`).join("\n")));
+  out.push(el("otros:sso", "Otros criterios", "Guía de seguridad y salud ocupacional", [...SSO_ITEMS.map((i) => `${i.texto}${i.ayuda ? ` (${i.ayuda})` : ""}`), `Fuentes: ${SSO_FUENTES.join("; ")}`, SSO_NOTA].join("\n")));
+  out.push(el("otros:rerit", "Otros criterios", "Guía de presentación en línea (RERIT)", [...RERIT_PASOS, ...RERIT_DOCS.map((i) => i.texto), RERIT_NOTA].join("\n")));
   return out;
 }
 

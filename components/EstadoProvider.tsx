@@ -119,6 +119,9 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
     return () => clearTimeout(t);
   }, [estado, listo]);
 
+  // Al desmontar el proveedor (p. ej. la versión de un solo archivo remonta al cambiar de pantalla) se guarda lo pendiente.
+  useEffect(() => () => { if (sucio.current && repo.current) void repo.current.guardar(ultimo.current).catch(() => {}); }, []);
+
   // Al cerrar o recargar la pestaña se guarda de inmediato lo pendiente.
   useEffect(() => {
     if (!listo) return;

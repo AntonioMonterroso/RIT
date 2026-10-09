@@ -226,6 +226,10 @@ export const CLAUSULAS: Clausula[] = [
     texto: () => `La Empresa y sus trabajadores se sujetan al Reglamento de Salud y Seguridad Ocupacional (Acuerdo Gubernativo 229-2014 y sus reformas). La Empresa adoptará las medidas necesarias para proteger la vida, la seguridad y la salud de los trabajadores y, cuando por el número de trabajadores corresponda, conformará la organización de seguridad y salud que dicho reglamento exige.`,
   },
   {
+    id: "c7_comite", capitulo: "mod_7", titulo: "Comité de seguridad y salud ocupacional", resumen: "Comité bipartito, cuando el reglamento de SSO lo exija.", auto: () => false,
+    texto: () => `Cuando el Reglamento de Salud y Seguridad Ocupacional y sus reformas lo exijan, la Empresa conformará el comité bipartito de salud y seguridad ocupacional, integrado por igual número de representantes de la Empresa y de los trabajadores. Los trabajadores deberán colaborar con las actividades, capacitaciones y simulacros que el comité y el plan de salud y seguridad ocupacional determinen.`,
+  },
+  {
     id: "c7_epp", capitulo: "mod_7", titulo: "Equipo de protección personal", resumen: "Uso obligatorio del EPP entregado.", auto: siempre,
     texto: (c) => `${c.d.epp ? "La Empresa entregará sin costo el equipo de protección personal (EPP) que requiera cada puesto, y su uso será obligatorio durante la ejecución de las tareas que lo exijan." : "Cuando el puesto lo requiera, la Empresa entregará sin costo el equipo de protección personal (EPP) necesario, y su uso será obligatorio."} La negativa injustificada a usar el EPP o a cumplir las medidas de seguridad constituye falta grave.`,
   },

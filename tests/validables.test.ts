@@ -12,6 +12,8 @@ describe("validación legal del contenido", () => {
     expect(todos.some((v) => v.id === "norma:vacaciones")).toBe(true);
     expect(todos.some((v) => v.id === "clausulas:mod_4")).toBe(true);
     expect(todos.some((v) => v.id === "guia:mod_puestos")).toBe(true);
+    expect(todos.some((v) => v.id === "otros:sso")).toBe(true);
+    expect(todos.some((v) => v.id === "otros:rerit")).toBe(true);
   });
   it("el contenido es estable entre llamadas", () => {
     expect(validables().map((v) => v.huella)).toEqual(todos.map((v) => v.huella));

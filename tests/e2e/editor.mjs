@@ -325,6 +325,17 @@ await ir("/editor");
 await page.getByRole("tab", { name: /Revisión/ }).click();
 verificar(await page.getByText("Verificación legal").first().isVisible(), "el panel de revisión del editor incluye la verificación legal");
 
+// 14a1. Seguridad y salud, y guía del trámite en línea
+await ir("/seguridad");
+await page.getByLabel(/Elaboré el plan de salud y seguridad ocupacional/).check();
+verificar(/1 de 8 puntos marcados/.test(await texto()), "la lista de seguridad y salud cuenta los puntos marcados");
+await ir("/tramite");
+await page.getByLabel(/Patente de comercio/).check();
+verificar(/1 de 7 listos/.test(await texto()), "la guía del trámite en línea cuenta los documentos listos");
+await ir("/plantillas");
+verificar(await page.getByText("Comité de seguridad y salud ocupacional").first().isVisible(), "la biblioteca incluye la cláusula del comité de seguridad");
+await page.screenshot({ path: path.join(OUT, "16_seguridad.png") });
+
 // 14b. Retención: novedades legales, aprobaciones, rutina y bitácora
 await ir("/organizador");
 await page.getByLabel("Título", { exact: true }).nth(2).fill("Prohibición de acoso en el trabajo");
@@ -341,9 +352,11 @@ await page.screenshot({ path: path.join(OUT, "11_novedades.png"), fullPage: true
 await tarjetaNov.getByRole("button", { name: "Aplicar a mi reglamento" }).click();
 await page.getByText(/Se agregó a su reglamento/).waitFor();
 await ir("/versiones");
-verificar(await page.getByText(/Antes de novedad: Prohibición de acoso/).isVisible(), "aplicar una novedad guarda antes una versión de respaldo");
+await page.getByText(/Antes de novedad: Prohibición de acoso/).waitFor();
+verificar(true, "aplicar una novedad guarda antes una versión de respaldo");
 await ir("/calendario");
-verificar(await page.getByText(/Presentar a la IGT la reforma: Prohibición de acoso/).isVisible(), "aplicar una novedad crea el recordatorio para la IGT");
+await page.getByText(/Presentar a la IGT la reforma: Prohibición de acoso/).waitFor();
+verificar(true, "aplicar una novedad crea el recordatorio para la IGT");
 await ir("/vista-previa");
 verificar(await page.getByText(/Queda prohibido todo acto de acoso/).isVisible(), "el artículo sugerido quedó en el reglamento");
 

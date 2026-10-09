@@ -6,6 +6,7 @@ import { Aviso, Pagina, Seleccion, Tarjeta, Texto, AreaTexto, Insignia } from "@
 import type { EstadoTramite, Tramite as T } from "@/lib/tipos";
 import { auditar } from "@/lib/auditoria";
 import { externosAuditoria } from "@/lib/progreso";
+import { RERIT_DOCS, RERIT_NOTA, RERIT_PASOS } from "@/content/guiasLegales";
 
 const ETAPAS: { id: EstadoTramite; titulo: string; texto: string }[] = [
   { id: "sin_iniciar", titulo: "Preparación", texto: "Redactar, auditar y preparar el memorial y sus anexos." },
@@ -15,7 +16,7 @@ const ETAPAS: { id: EstadoTramite; titulo: string; texto: string }[] = [
 ];
 
 export default function Tramite() {
-  const { estado, actualizar } = useRit();
+  const { estado, actualizar, permitido } = useRit();
   const t = estado.tramite;
   const set = <K extends keyof T>(k: K, v: T[K]) => actualizar((s) => ({ ...s, tramite: { ...s.tramite, [k]: v } }));
   const idx = ETAPAS.findIndex((e) => e.id === t.estado);
@@ -58,6 +59,20 @@ export default function Tramite() {
           )}
           {(t.estado === "aprobado" || t.fechaAprobacion) && <Texto etiqueta="Fecha de la resolución de aprobación" type="date" value={t.fechaAprobacion} onChange={(e) => set("fechaAprobacion", e.target.value)} />}
         </div>
+      </Tarjeta>
+
+      <Tarjeta titulo="Presentación en línea (RERIT)" descripcion="Pasos y documentos que piden las guías consultadas para presentar el reglamento.">
+        <ol className="list-decimal space-y-1 pl-5 text-sm">{RERIT_PASOS.map((p) => <li key={p}>{p}</li>)}</ol>
+        <p className="mt-4 text-sm font-semibold">Documentos para cargar ({RERIT_DOCS.filter((d) => estado.checks[d.id]).length} de {RERIT_DOCS.length} listos)</p>
+        <ul className="mt-2 space-y-2">
+          {RERIT_DOCS.map((d) => (
+            <li key={d.id} className="flex items-start gap-3 text-sm">
+              <input type="checkbox" id={d.id} checked={!!estado.checks[d.id]} disabled={!permitido("editar")} onChange={(e) => actualizar((s) => ({ ...s, checks: { ...s.checks, [d.id]: e.target.checked } }))} className="mt-1 h-4 w-4 accent-[var(--brand-600)]" />
+              <label htmlFor={d.id}>{d.texto}</label>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-xs text-muted">{RERIT_NOTA} Esta guía aún no ha sido validada por un abogado colegiado.</p>
       </Tarjeta>
 
       {t.estado === "aprobado" && (

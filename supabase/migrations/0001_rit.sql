@@ -123,6 +123,7 @@ create table public.rit_configuracion (
   tramite jsonb not null default '{}'::jsonb,
   rutina jsonb not null default '{}'::jsonb,       -- rutina mensual de cumplimiento
   novedades jsonb not null default '{}'::jsonb,    -- novedades legales aplicadas o descartadas
+  checks jsonb not null default '{}'::jsonb,       -- casillas de las guías (SSO, trámite en línea)
   actualizado_en timestamptz not null default now()
 );
 

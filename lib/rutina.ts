@@ -5,6 +5,7 @@ export interface TareaRutina { id: string; titulo: string; detalle: string; href
 export const TAREAS_RUTINA: TareaRutina[] = [
   { id: "planilla", titulo: "Contar trabajadores", detalle: "Con 10 o más trabajadores el reglamento es obligatorio (Art. 58). Confirme si su planilla cambió.", href: "/diagnostico" },
   { id: "puestos", titulo: "Revisar puestos y horarios", detalle: "¿Hay puestos nuevos o cambios de jornada? El anexo de puestos y el horario deben coincidir con la realidad.", href: "/puestos" },
+  { id: "sso", titulo: "Revisar seguridad y salud ocupacional", detalle: "Plan de SSO, comité, capacitaciones y constancias de entrega de equipo al día.", href: "/seguridad" },
   { id: "novedades", titulo: "Atender novedades legales", detalle: "Aplique o descarte cada novedad publicada este mes.", href: "/novedades" },
   { id: "plazos", titulo: "Revisar plazos y recordatorios", detalle: "Confirme que no hay plazos vencidos y programe los de las próximas semanas.", href: "/calendario" },
   { id: "ejemplares", titulo: "Verificar ejemplares y constancias", detalle: "Los ejemplares fijados deben seguir visibles y cada trabajador nuevo debe firmar su constancia.", href: "/formatos" },

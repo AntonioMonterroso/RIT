@@ -1,6 +1,7 @@
 import type { EstadoRit } from "@/lib/almacen";
 import type { Recordatorio } from "@/lib/biblioteca";
-import { fechaVigencia, sumarDias } from "@/lib/fechas";
+import { DIAS_SEGUIMIENTO_REFERENCIAL } from "@/content/guiasLegales";
+import { fechaVigencia, sumarDias, sumarDiasHabiles } from "@/lib/fechas";
 import { fechasLegales } from "@/lib/fechasLegales";
 
 export interface Aviso {
@@ -23,6 +24,9 @@ export function construirAvisos(estado: EstadoRit, generales: Recordatorio[], ho
   const p = estado.publicacion;
   if (p.fecha) {
     out.push({ clave: "vigencia", origen: "sistema", titulo: "Entrada en vigor del RIT", detalle: "15 días después de darlo a conocer (Art. 59)", fecha: fechaVigencia(p.fecha) });
+  }
+  if (estado.tramite.estado === "presentado" && estado.tramite.fechaPresentacion) {
+    out.push({ clave: "seguimiento-igt", origen: "sistema", titulo: "Dar seguimiento a la solicitud presentada a la IGT", detalle: `Plazo referencial de ${DIAS_SEGUIMIENTO_REFERENCIAL} días hábiles según guías de terceros; no es un plazo legal confirmado. Consulte el estado en el portal.`, fecha: sumarDiasHabiles(estado.tramite.fechaPresentacion, DIAS_SEGUIMIENTO_REFERENCIAL) });
   }
   for (const f of fechasLegales(hoy, 200)) {
     out.push({ clave: f.clave, origen: "sistema", titulo: f.titulo, detalle: f.detalle, fecha: f.fecha });

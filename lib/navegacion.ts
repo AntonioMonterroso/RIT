@@ -34,6 +34,7 @@ export const RECURSOS: Destino[] = [
 export const CUMPLIMIENTO: Destino[] = [
   { href: "/novedades", texto: "Novedades legales", icono: "novedades", claves: "cambios ley actualizar reforma aplicar" },
   { href: "/cumplimiento", texto: "Rutina y bitácora", icono: "rutina", claves: "mensual salud informe historial racha revisión anual" },
+  { href: "/seguridad", texto: "Seguridad y salud", icono: "seguridad", claves: "sso comité plan 229-2014 epp capacitación emergencias" },
   { href: "/aprobaciones", texto: "Aprobaciones", icono: "aprobacion", claves: "acta aprobar constancia revisor huella firma interna" },
 ];
 

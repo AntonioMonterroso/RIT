@@ -24,6 +24,7 @@ import Equipo from "@/components/vistas/Equipo";
 import Novedades from "@/components/vistas/Novedades";
 import Cumplimiento from "@/components/vistas/Cumplimiento";
 import Plan from "@/components/vistas/Plan";
+import Seguridad from "@/components/vistas/Seguridad";
 import Bienvenida from "@/components/vistas/Bienvenida";
 import { usePathname } from "./shims/navigation";
 
@@ -32,7 +33,7 @@ const PANTALLAS: Record<string, ComponentType> = {
   "/auditoria": Auditoria, "/memorial": Memorial, "/tramite": Tramite, "/publicidad": Publicidad,
   "/plantillas": Plantillas, "/formatos": Formatos, "/biblioteca": Biblioteca, "/calendario": Calendario, "/ajustes": Ajustes,
   "/vista-previa": VistaPrevia, "/versiones": Versiones, "/ayuda": Ayuda, "/importar": Importar,
-  "/aprobaciones": Aprobaciones, "/equipo": Equipo, "/novedades": Novedades, "/cumplimiento": Cumplimiento, "/plan": Plan,
+  "/aprobaciones": Aprobaciones, "/equipo": Equipo, "/novedades": Novedades, "/cumplimiento": Cumplimiento, "/plan": Plan, "/seguridad": Seguridad,
 };
 
 export default function Raiz() {

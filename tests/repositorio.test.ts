@@ -139,11 +139,12 @@ describe("repositorio Supabase", () => {
   });
 
   it("guarda la rutina y las novedades dentro de la configuración", async () => {
-    const { db, upserts } = falso({ rit_configuracion: [{ rutina: { "2026-10": { hechos: { planilla: true }, cerrada: null } }, novedades: { n1: { estado: "aplicada", fecha: "2026-10-05T00:00:00Z" } } }] });
+    const { db, upserts } = falso({ rit_configuracion: [{ checks: { "sso:plan": true }, rutina: { "2026-10": { hechos: { planilla: true }, cerrada: null } }, novedades: { n1: { estado: "aplicada", fecha: "2026-10-05T00:00:00Z" } } }] });
     const repo = repositorioSupabase(db, "emp-1");
     const s = await repo.cargar();
     expect(s.rutina["2026-10"].hechos.planilla).toBe(true);
     expect(s.novedades.n1.estado).toBe("aplicada");
+    expect(s.checks["sso:plan"]).toBe(true);
     await repo.guardar({ ...s, rutina: {} });
     expect(upserts.find((u) => u.tabla === "rit_configuracion")!.fila).toMatchObject({ rutina: {}, novedades: s.novedades });
   });

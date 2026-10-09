@@ -65,7 +65,7 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
       const aprobaciones: Aprobacion[] = ((apro.data ?? []) as (Omit<Aprobacion, "fecha"> & { creada_en: string })[])
         .map(({ creada_en, ...a }) => ({ ...a, fecha: creada_en }));
       for (const a of aprobaciones) ultimo.set(`apr:${a.id}`, "guardada");
-      const cfg = conf.data as { diagnostico?: Diagnostico; puestos?: Puesto[]; tramite?: Tramite; rutina?: Rutina; novedades?: NovedadesAtendidas } | null;
+      const cfg = conf.data as { diagnostico?: Diagnostico; puestos?: Puesto[]; tramite?: Tramite; rutina?: Rutina; novedades?: NovedadesAtendidas; checks?: Record<string, boolean> } | null;
       const d = datos.data as Partial<EstadoRit["empresa"]> | null;
       return {
         ...ESTADO_INICIAL,
@@ -85,6 +85,7 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
         aprobaciones,
         rutina: cfg?.rutina ?? {},
         novedades: cfg?.novedades ?? {},
+        checks: cfg?.checks ?? {},
         actualizado: null,
       };
     },
@@ -104,7 +105,7 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
       await upsertSiCambio("memoriales", "memo", { empresa_id: empresaId, datos: estado.memorial }, "empresa_id");
       await upsertSiCambio("rit_configuracion", "conf", {
         empresa_id: empresaId, diagnostico: estado.diagnostico, puestos: estado.puestos, tramite: estado.tramite,
-        rutina: estado.rutina, novedades: estado.novedades,
+        rutina: estado.rutina, novedades: estado.novedades, checks: estado.checks,
       }, "empresa_id");
       await upsertSiCambio("publicaciones", "pub", {
         empresa_id: empresaId, fecha: estado.publicacion.fecha || null, medio: estado.publicacion.medio,
