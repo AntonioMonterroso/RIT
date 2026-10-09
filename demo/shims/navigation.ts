@@ -9,10 +9,10 @@ const suscribir = (cb: () => void) => {
 export const rutaActual = (): string => {
   const h = window.location.hash.replace(/^#/, "");
   const i = h.indexOf("?");
-  return (i >= 0 ? h.slice(0, i) : h) || "/inicio";
+  return (i >= 0 ? h.slice(0, i) : h) || "/";
 };
 
-export const usePathname = () => useSyncExternalStore(suscribir, rutaActual, () => "/inicio");
+export const usePathname = () => useSyncExternalStore(suscribir, rutaActual, () => "/");
 
 export const useRouter = () =>
   useMemo(() => ({

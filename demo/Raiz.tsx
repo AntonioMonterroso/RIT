@@ -15,6 +15,7 @@ import Publicidad from "@/components/vistas/Publicidad";
 import Plantillas from "@/components/vistas/Plantillas";
 import Formatos from "@/components/vistas/Formatos";
 import Ajustes from "@/components/vistas/Ajustes";
+import Bienvenida from "@/components/vistas/Bienvenida";
 import { usePathname } from "./shims/navigation";
 
 const PANTALLAS: Record<string, ComponentType> = {
@@ -27,9 +28,11 @@ export default function Raiz() {
   const ruta = usePathname();
   useEffect(() => { window.scrollTo(0, 0); }, [ruta]);
 
-  // Una ruta desconocida (o la raíz) lleva al Inicio y deja la dirección coherente.
-  useEffect(() => { if (ruta !== "/organizador" && !PANTALLAS[ruta]) window.location.replace("#/inicio"); }, [ruta]);
+  // La raíz muestra la portada; una ruta desconocida lleva al Inicio.
+  const publica = ruta === "/" || ruta === "/bienvenida";
+  useEffect(() => { if (!publica && ruta !== "/organizador" && !PANTALLAS[ruta]) window.location.replace("#/inicio"); }, [ruta, publica]);
 
+  if (publica) return <Bienvenida />;
   if (ruta === "/organizador") return <PanelOrganizador />;
   const Pantalla = PANTALLAS[ruta] ?? Inicio;
   return (

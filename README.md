@@ -6,7 +6,7 @@ sin acceso al contenido de ninguna empresa.
 
 ## Probarlo sin instalar nada
 
-Descargue **`RIT-demo.html`** (está en la raíz del repositorio) y ábralo con doble clic en Chrome, Edge o Firefox. Funciona sin internet y guarda su trabajo en ese navegador. Si lo regenera: `npm run demo`.
+Descargue **`RIT-demo.html`** (está en la raíz del repositorio) y ábralo con doble clic en Chrome, Edge o Firefox. Abre en la portada del producto; «Entrar al sistema» lleva al panel. Funciona sin internet y guarda su trabajo en ese navegador. Si lo regenera: `npm run demo`.
 
 ## Qué hace
 
@@ -31,6 +31,7 @@ Buscador de comandos con **Ctrl+K**. Todo se exporta a `.docx` real. Sistema de 
 | Panel del organizador (leyes y recordatorios generales) | Hecho, modo local |
 | Esquema de base de datos con RLS, una sola migración | Probado en Postgres 16 local (`npm run test:db`); **no** en un proyecto Supabase real |
 | Cuentas y guardado en Supabase | Escrito; probado con dobles y Postgres local, **no** contra Supabase real |
+| Portada con planes (`/`, precios editables en `content/planes.ts`; **los montos son de ejemplo**) | Hecho |
 | Cobro con Stripe, correos de aviso | Pendiente |
 | Revisión legal de los textos | **Pendiente (imprescindible antes de vender)** |
 

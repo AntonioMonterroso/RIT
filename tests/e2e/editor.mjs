@@ -35,11 +35,21 @@ const descargar = async (boton) => {
   return destino;
 };
 
-// 1. Entrada
+// 1. Portada y entrada al sistema
 await ir("/");
+await page.getByRole("heading", { level: 1 }).waitFor();
+verificar(/listo para la IGT/.test(await page.getByRole("heading", { level: 1 }).innerText()), "la raíz muestra la portada del producto");
+await page.screenshot({ path: path.join(OUT, "00_portada.png"), fullPage: true });
+await page.getByRole("button", { name: "Planes" }).click();
+verificar(await page.getByRole("heading", { name: "Empresa", exact: true }).isVisible() && await page.getByRole("heading", { name: "Despacho", exact: true }).isVisible() && await page.getByRole("heading", { name: "Corporativo", exact: true }).isVisible(), "la portada muestra los tres planes");
+verificar(await page.getByText("Precios de ejemplo").isVisible(), "los precios se marcan como ejemplo mientras no estén confirmados");
+await page.setViewportSize({ width: 390, height: 800 });
+verificar(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), "la portada no se desborda en móvil");
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.getByRole("link", { name: "Entrar al sistema" }).click();
 await esperaRuta("/inicio");
 await page.getByText("Ruta hacia un reglamento aprobado").waitFor();
-verificar((await texto()).includes("Ruta hacia un reglamento aprobado"), "la raíz lleva al Inicio con la ruta de pasos");
+verificar((await texto()).includes("Ruta hacia un reglamento aprobado"), "«Entrar al sistema» lleva al centro de mando");
 await page.screenshot({ path: path.join(OUT, "01_inicio.png") });
 
 // 2. Datos de la empresa
