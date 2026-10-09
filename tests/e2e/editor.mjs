@@ -40,6 +40,23 @@ const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("b
 const destino = path.join(OUT, await dl.suggestedFilename());
 await dl.saveAs(destino);
 
+
+// Memorial: se completa con los datos de la empresa y descarga.
+await page.getByRole("button", { name: "Memorial", exact: true }).click();
+const razonMem = await page.getByLabel("Razón social", { exact: true }).inputValue();
+if (razonMem !== "Comercializadora Prueba, S.A.") throw new Error("memorial no heredó la razón social: " + razonMem);
+await page.getByLabel("Nombre del representante legal").fill("Ana López");
+const [dm] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Descargar memorial/ }).click()]);
+await dm.saveAs(path.join(OUT, await dm.suggestedFilename()));
+
+// Publicidad: 9 oct 2026 + 15 días = 24 oct 2026.
+await page.getByRole("button", { name: "Publicidad y vigencia" }).click();
+await page.getByLabel("Fecha en que se dio a conocer al personal").fill("2026-10-09");
+await page.getByLabel("Medio de publicidad").selectOption("fijacion");
+const vig = await page.getByRole("status").innerText();
+if (!vig.includes("24/10/2026")) throw new Error("vigencia incorrecta: " + vig);
+await page.screenshot({ path: path.join(OUT, "publicidad.png") });
+
 // El borrador debe sobrevivir a una recarga.
 await page.reload();
 await page.getByRole("button", { name: "Datos de la empresa" }).click();

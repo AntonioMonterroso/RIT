@@ -12,8 +12,9 @@ sin acceso al contenido de ninguna empresa.
 | Exportación a `.docx` real | Hecho |
 | Auditoría IGT (16 criterios, puntaje y semáforo) | Hecho |
 | Fechas legales (feriados de Guatemala, 15 días de publicidad) | Hecho, con pruebas |
+| Memorial (.docx) y publicidad/vigencia (Art. 59) | Hecho |
 | Esquema de base de datos con RLS | Hecho y probado en Postgres 16 local (`npm run test:db`); falta probarlo en un proyecto Supabase real |
-| Cuentas, guardado en Supabase, memorial, calendario, biblioteca, Stripe | Pendiente |
+| Cuentas, guardado en Supabase, calendario, biblioteca, Stripe | Pendiente |
 
 Hoy el borrador se guarda en el navegador (`lib/almacen.ts`); se cambiará por Supabase al conectar cuentas.
 

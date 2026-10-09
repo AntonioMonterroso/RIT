@@ -11,11 +11,13 @@ import { CAPITULOS, CAPITULO_POR_KEY, type CapituloKey } from "@/content/capitul
 import { BLOQUES, CRITERIOS } from "@/content/checklist";
 import { auditar, capituloCompleto, textoPlano } from "@/lib/auditoria";
 import { generarDocxBlob, type Nodo } from "@/lib/docx";
+import { generarMemorialBlob, type DatosMemorial } from "@/lib/memorial";
+import { fechaVigencia, sumarDias } from "@/lib/fechas";
 import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit } from "@/lib/almacen";
 import { Cinta } from "./Cinta";
 import { SaltoPagina } from "./SaltoPagina";
 
-type Vista = "redaccion" | "auditoria" | "empresa";
+type Vista = "redaccion" | "auditoria" | "memorial" | "publicidad" | "empresa";
 
 const SEMAFORO = {
   listo: { clase: "bg-green-100 text-green-800 border-green-300", texto: "Listo para presentar a la IGT" },
@@ -91,6 +93,23 @@ export default function RitEditor() {
     saveAs(blob, `RIT_${(estado.empresa.nombre_comercial || estado.empresa.razon_social || "empresa").replace(/\s+/g, "_")}.docx`);
   };
 
+  const setMemorial = (campo: keyof DatosMemorial, valor: string) =>
+    setEstado((s) => ({ ...s, memorial: { ...s.memorial, [campo]: valor } }));
+  // El memorial se rellena con los datos de la empresa mientras el usuario no lo haya escrito a mano.
+  const memorial: DatosMemorial = {
+    ...estado.memorial,
+    rep_nombre: estado.memorial.rep_nombre || estado.empresa.representante_legal,
+    razon_social: estado.memorial.razon_social || estado.empresa.razon_social,
+    nombre_comercial: estado.memorial.nombre_comercial || estado.empresa.nombre_comercial,
+  };
+  const exportarMemorial = async () => {
+    const blob = await generarMemorialBlob(memorial);
+    saveAs(blob, `MEMORIAL_IGT_${(memorial.razon_social || "empresa").replace(/\s+/g, "_")}.docx`);
+  };
+  const pub = estado.publicacion;
+  const vigencia = /^\d{4}-\d{2}-\d{2}$/.test(pub.fecha) ? fechaVigencia(pub.fecha) : null;
+  const medioOk = pub.medio !== "";
+
   const resultado = auditar(estado.capitulos, estado.manuales);
   const sem = SEMAFORO[resultado.semaforo];
   const setEmpresa = (campo: keyof EstadoRit["empresa"], valor: string) =>
@@ -116,7 +135,7 @@ export default function RitEditor() {
       </header>
 
       <nav className="flex border-b border-slate-200 bg-white px-3" aria-label="Secciones">
-        {([["redaccion", "Redacción"], ["auditoria", "Auditoría IGT"], ["empresa", "Datos de la empresa"]] as const).map(([k, t]) => (
+        {([["redaccion", "Redacción"], ["auditoria", "Auditoría IGT"], ["memorial", "Memorial"], ["publicidad", "Publicidad y vigencia"], ["empresa", "Datos de la empresa"]] as const).map(([k, t]) => (
           <button
             key={k}
             onClick={() => setVista(k)}
@@ -213,6 +232,83 @@ export default function RitEditor() {
               ))}
             </section>
           </div>
+        </main>
+      )}
+
+      {vista === "memorial" && (
+        <main className="flex-1 overflow-auto p-6">
+          <form className="mx-auto grid max-w-3xl gap-4 rounded-lg border border-slate-200 bg-white p-6 md:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
+            <p className="text-sm text-slate-600 md:col-span-2">
+              Memorial dirigido a la Inspección General de Trabajo. Los datos de la empresa se completan solos; revise y ajuste.
+            </p>
+            {([
+              ["autoridad", "Autoridad a la que se dirige", true],
+              ["rep_nombre", "Nombre del representante legal", false],
+              ["rep_datos", "Edad, estado civil y profesión", false],
+              ["rep_dpi", "DPI del representante", false],
+              ["calidad", "Calidad con la que actúa", false],
+              ["razon_social", "Razón social", false],
+              ["nombre_comercial", "Nombre comercial", false],
+              ["direccion", "Dirección para notificaciones", true],
+              ["lugar_fecha", "Lugar y fecha del memorial", true],
+            ] as const).map(([campo, etiqueta, ancho]) => (
+              <label key={campo} className={`block text-sm font-semibold ${ancho ? "md:col-span-2" : ""}`}>
+                {etiqueta}
+                <input
+                  value={memorial[campo]}
+                  onChange={(e) => setMemorial(campo, e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal"
+                />
+              </label>
+            ))}
+            <div className="md:col-span-2">
+              <button type="button" onClick={exportarMemorial} className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+                Descargar memorial (.docx)
+              </button>
+            </div>
+          </form>
+        </main>
+      )}
+
+      {vista === "publicidad" && (
+        <main className="flex-1 overflow-auto p-6">
+          <section className="mx-auto max-w-xl space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+            <p className="text-sm text-slate-600">
+              Una vez aprobado por la IGT, el reglamento debe darse a conocer a los trabajadores y rige 15 días después.
+            </p>
+            <label className="block text-sm font-semibold">
+              Fecha en que se dio a conocer al personal
+              <input
+                type="date"
+                value={pub.fecha}
+                onChange={(e) => setEstado((s) => ({ ...s, publicacion: { ...s.publicacion, fecha: e.target.value } }))}
+                className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal"
+              />
+            </label>
+            <label className="block text-sm font-semibold">
+              Medio de publicidad
+              <select
+                value={pub.medio}
+                onChange={(e) => setEstado((s) => ({ ...s, publicacion: { ...s.publicacion, medio: e.target.value as typeof pub.medio } }))}
+                className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal"
+              >
+                <option value="">Seleccione…</option>
+                <option value="fijacion">Ejemplares fijados en dos sitios visibles</option>
+                <option value="folleto">Folleto entregado a cada trabajador (con constancia firmada)</option>
+                <option value="ambos">Ambos</option>
+              </select>
+            </label>
+            <div role="status" aria-live="polite" className={`rounded border px-4 py-3 text-sm ${vigencia && medioOk ? "border-green-300 bg-green-50 text-green-900" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
+              {vigencia && medioOk ? (
+                <>
+                  <p className="font-bold">El reglamento entra en vigor el {vigencia.split("-").reverse().join("/")}.</p>
+                  <p className="mt-1">Conserve la constancia de publicidad. Último día antes de regir: {sumarDias(vigencia, -1).split("-").reverse().join("/")}.</p>
+                </>
+              ) : (
+                <p>Indique la fecha y el medio para calcular la entrada en vigor.</p>
+              )}
+            </div>
+          </section>
         </main>
       )}
 

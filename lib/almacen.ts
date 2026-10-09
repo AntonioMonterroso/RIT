@@ -1,5 +1,6 @@
 import type { CapituloKey } from "@/content/capitulos";
 import type { Nodo } from "@/lib/docx";
+import { MEMORIAL_INICIAL, type DatosMemorial } from "@/lib/memorial";
 
 export interface Empresa {
   razon_social: string;
@@ -13,6 +14,8 @@ export interface EstadoRit {
   empresa: Empresa;
   capitulos: Partial<Record<CapituloKey, Nodo>>;
   manuales: Record<string, boolean>;
+  memorial: DatosMemorial;
+  publicacion: { fecha: string; medio: "" | "fijacion" | "folleto" | "ambos" };
   actualizado: string | null;
 }
 
@@ -20,6 +23,8 @@ export const ESTADO_INICIAL: EstadoRit = {
   empresa: { razon_social: "", nombre_comercial: "", nit: "", representante_legal: "", departamento: "Guatemala" },
   capitulos: {},
   manuales: {},
+  memorial: MEMORIAL_INICIAL,
+  publicacion: { fecha: "", medio: "" },
   actualizado: null,
 };
 
@@ -31,7 +36,9 @@ export function cargarBorrador(): EstadoRit {
     const raw = localStorage.getItem(CLAVE);
     if (!raw) return ESTADO_INICIAL;
     const p = JSON.parse(raw) as Partial<EstadoRit>;
-    return { ...ESTADO_INICIAL, ...p, empresa: { ...ESTADO_INICIAL.empresa, ...p.empresa } };
+    return { ...ESTADO_INICIAL, ...p, empresa: { ...ESTADO_INICIAL.empresa, ...p.empresa },
+      memorial: { ...MEMORIAL_INICIAL, ...p.memorial },
+      publicacion: { ...ESTADO_INICIAL.publicacion, ...p.publicacion } };
   } catch {
     return ESTADO_INICIAL;
   }
