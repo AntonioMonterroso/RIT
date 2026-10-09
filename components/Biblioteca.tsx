@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { clienteSupabase } from "@/lib/supabase/cliente";
-import { listarLeyes, type Ley } from "@/lib/biblioteca";
+import { datos } from "@/lib/datos";
+import type { Ley } from "@/lib/biblioteca";
 import Marco from "./Marco";
 
 export default function Biblioteca() {
@@ -12,9 +12,7 @@ export default function Biblioteca() {
   const [abierta, setAbierta] = useState<string | null>(null);
 
   useEffect(() => {
-    const db = clienteSupabase();
-    if (!db) return setLeyes([]);
-    listarLeyes(db).then(setLeyes).catch((e: Error) => setError(e.message));
+    datos().listarLeyes().then(setLeyes).catch((e: Error) => setError(e.message));
   }, []);
 
   const visibles = useMemo(() => {

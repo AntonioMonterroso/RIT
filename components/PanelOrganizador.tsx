@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { clienteSupabase } from "@/lib/supabase/cliente";
-import {
-  listarEmpresas, listarLeyes, listarRecordatoriosGlobales, publicarLey, publicarRecordatorio,
-  retirarLey, retirarRecordatorio, type EmpresaResumen, type Ley, type Recordatorio,
-} from "@/lib/biblioteca";
+import { datos } from "@/lib/datos";
+import type { EmpresaResumen, Ley, Recordatorio } from "@/lib/biblioteca";
 import Marco from "./Marco";
 
 const campo = "mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal";
@@ -22,20 +19,16 @@ export default function PanelOrganizador() {
   const [rec, setRec] = useState({ titulo: "", detalle: "", fecha: "" });
 
   const refrescar = useCallback(async () => {
-    const db = clienteSupabase();
-    if (!db) return;
     try {
-      const [l, r, e] = await Promise.all([listarLeyes(db), listarRecordatoriosGlobales(db), listarEmpresas(db)]);
+      const d = datos();
+      const [l, r, e] = await Promise.all([d.listarLeyes(), d.listarRecordatorios(), d.listarEmpresas()]);
       setLeyes(l); setRecs(r); setEmpresas(e); setError("");
     } catch (x) { setError((x as Error).message); }
   }, []);
 
   useEffect(() => {
     (async () => {
-      const db = clienteSupabase();
-      if (!db) return router.replace("/acceso");
-      const { data } = await db.from("perfiles").select("rol").maybeSingle();
-      if (data?.rol !== "organizador") return router.replace("/acceso");
+      if (!(await datos().esOrganizador())) return router.replace("/acceso");
       void refrescar();
     })();
   }, [router, refrescar]);
@@ -46,11 +39,16 @@ export default function PanelOrganizador() {
 
   return (
     <Marco titulo="Panel de administración" enlaces={[]}>
+      {datos().local && (
+        <p className="mb-4 rounded border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900">
+          Modo de prueba local: lo que publique aquí aparece en la biblioteca y el calendario de este mismo navegador.
+        </p>
+      )}
       {error && <p role="alert" className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <div className="grid gap-6 md:grid-cols-2">
         <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="font-bold">Publicar ley en la biblioteca</h2>
-          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void accion(async () => { await publicarLey(clienteSupabase()!, ley); setLey({ titulo: "", referencia: "", contenido: "" }); })(); }}>
+          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void accion(async () => { await datos().publicarLey(ley); setLey({ titulo: "", referencia: "", contenido: "" }); })(); }}>
             <label className="block text-sm font-semibold">Título<input required value={ley.titulo} onChange={(e) => setLey({ ...ley, titulo: e.target.value })} className={campo} /></label>
             <label className="block text-sm font-semibold">Referencia<input value={ley.referencia} onChange={(e) => setLey({ ...ley, referencia: e.target.value })} className={campo} placeholder="Decreto 1441" /></label>
             <label className="block text-sm font-semibold">Texto<textarea required rows={6} value={ley.contenido} onChange={(e) => setLey({ ...ley, contenido: e.target.value })} className={campo} /></label>
@@ -60,7 +58,7 @@ export default function PanelOrganizador() {
             {leyes.map((l) => (
               <li key={l.id} className="flex items-center justify-between py-2">
                 <span>{l.titulo}</span>
-                <button onClick={accion(() => retirarLey(clienteSupabase()!, l.id))} className="text-red-700 hover:underline">Retirar</button>
+                <button onClick={accion(() => datos().retirarLey(l.id))} className="text-red-700 hover:underline">Retirar</button>
               </li>
             ))}
           </ul>
@@ -68,7 +66,7 @@ export default function PanelOrganizador() {
 
         <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="font-bold">Recordatorios para todas las empresas</h2>
-          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void accion(async () => { await publicarRecordatorio(clienteSupabase()!, rec); setRec({ titulo: "", detalle: "", fecha: "" }); })(); }}>
+          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void accion(async () => { await datos().publicarRecordatorio(rec); setRec({ titulo: "", detalle: "", fecha: "" }); })(); }}>
             <label className="block text-sm font-semibold">Título<input required value={rec.titulo} onChange={(e) => setRec({ ...rec, titulo: e.target.value })} className={campo} /></label>
             <label className="block text-sm font-semibold">Detalle<input value={rec.detalle} onChange={(e) => setRec({ ...rec, detalle: e.target.value })} className={campo} /></label>
             <label className="block text-sm font-semibold">Fecha<input required type="date" value={rec.fecha} onChange={(e) => setRec({ ...rec, fecha: e.target.value })} className={campo} /></label>
@@ -78,7 +76,7 @@ export default function PanelOrganizador() {
             {recs.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2">
                 <span><b>{r.fecha.split("-").reverse().join("/")}</b> · {r.titulo}</span>
-                <button onClick={accion(() => retirarRecordatorio(clienteSupabase()!, r.id))} className="text-red-700 hover:underline">Eliminar</button>
+                <button onClick={accion(() => datos().retirarRecordatorio(r.id))} className="text-red-700 hover:underline">Eliminar</button>
               </li>
             ))}
           </ul>

@@ -5,6 +5,7 @@ import { ESTADO_INICIAL } from "@/lib/almacen";
 /** Doble en memoria que imita lo mínimo de PostgREST: select, maybeSingle y upsert. */
 function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
   const upserts: { tabla: string; fila: Record<string, unknown>; conflicto?: string }[] = [];
+  const borrados: { tabla: string; id: unknown }[] = [];
   const db = {
     from(tabla: string) {
       const datos = filas[tabla] ?? [];
@@ -12,6 +13,7 @@ function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
         select: () => consulta,
         maybeSingle: async () => ({ data: datos[0] ?? null, error: null }),
         then: (res: (v: unknown) => unknown) => res({ data: datos, error: null }),
+        delete: () => ({ eq: async (_c: string, id: unknown) => { borrados.push({ tabla, id }); return { error: null }; } }),
         upsert: async (fila: Record<string, unknown>, o?: { onConflict?: string }) => {
           upserts.push({ tabla, fila, conflicto: o?.onConflict });
           return { error: null };
@@ -20,7 +22,7 @@ function falso(filas: Record<string, Record<string, unknown>[]> = {}) {
       return consulta;
     },
   } as unknown as ClienteDatos;
-  return { db, upserts };
+  return { db, upserts, borrados };
 }
 
 const doc = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "hola" }] }] };
@@ -68,5 +70,23 @@ describe("repositorio Supabase", () => {
   it("propaga errores de la base", async () => {
     const db = { from: () => ({ upsert: async () => ({ error: { message: "rls" } }) }) } as unknown as ClienteDatos;
     await expect(repositorioSupabase(db, "e").guardar(ESTADO_INICIAL)).rejects.toThrow(/rls/);
+  });
+
+  it("guarda, edita y borra recordatorios propios", async () => {
+    const { db, upserts, borrados } = falso({ recordatorios_empresa: [{ id: "r1", titulo: "Viejo", fecha: "2026-11-01", hecho: false }] });
+    const repo = repositorioSupabase(db, "emp-1");
+    const s0 = await repo.cargar();
+    expect(s0.recordatorios).toEqual([{ id: "r1", titulo: "Viejo", fecha: "2026-11-01", hecho: false }]);
+
+    await repo.guardar(s0); // sin cambios
+    expect(upserts.some((u) => u.tabla === "recordatorios_empresa")).toBe(false);
+
+    await repo.guardar({ ...s0, recordatorios: [{ ...s0.recordatorios[0], hecho: true }, { id: "r2", titulo: "Nuevo", fecha: "2026-12-01", hecho: false }] });
+    const rec = upserts.filter((u) => u.tabla === "recordatorios_empresa");
+    expect(rec).toHaveLength(2);
+    expect(rec.every((u) => u.fila.empresa_id === "emp-1" && u.conflicto === "id")).toBe(true);
+
+    await repo.guardar({ ...s0, recordatorios: [] });
+    expect(borrados.map((b) => b.id).sort()).toEqual(["r1", "r2"]);
   });
 });

@@ -10,12 +10,15 @@ export interface Empresa {
   departamento: string;
 }
 
+export interface RecordatorioPropio { id: string; titulo: string; fecha: string; hecho: boolean }
+
 export interface EstadoRit {
   empresa: Empresa;
   capitulos: Partial<Record<CapituloKey, Nodo>>;
   manuales: Record<string, boolean>;
   memorial: DatosMemorial;
   publicacion: { fecha: string; medio: "" | "fijacion" | "folleto" | "ambos" };
+  recordatorios: RecordatorioPropio[];
   actualizado: string | null;
 }
 
@@ -25,6 +28,7 @@ export const ESTADO_INICIAL: EstadoRit = {
   manuales: {},
   memorial: MEMORIAL_INICIAL,
   publicacion: { fecha: "", medio: "" },
+  recordatorios: [],
   actualizado: null,
 };
 

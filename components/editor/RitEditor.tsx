@@ -16,8 +16,11 @@ import { fechaVigencia, sumarDias } from "@/lib/fechas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ESTADO_INICIAL, type EstadoRit } from "@/lib/almacen";
-import { repositorioLocal, repositorioSupabase, type Repositorio } from "@/lib/repositorio";
-import { clienteSupabase } from "@/lib/supabase/cliente";
+import { repositorioLocal, type Repositorio } from "@/lib/repositorio";
+import { abrirRepositorio } from "@/lib/sesion";
+import { datos } from "@/lib/datos";
+import { construirAvisos, contarUrgentes } from "@/lib/avisos";
+import type { Recordatorio } from "@/lib/biblioteca";
 import { Cinta } from "./Cinta";
 import { SaltoPagina } from "./SaltoPagina";
 
@@ -33,6 +36,7 @@ export default function RitEditor() {
   const router = useRouter();
   const [estado, setEstado] = useState<EstadoRit>(ESTADO_INICIAL);
   const [listo, setListo] = useState(false);
+  const [generales, setGenerales] = useState<Recordatorio[]>([]);
   const [guardado, setGuardado] = useState<"" | "guardando" | "ok" | "error">("");
   const repoRef = useRef<Repositorio>(repositorioLocal);
   const [vista, setVista] = useState<Vista>("redaccion");
@@ -64,13 +68,10 @@ export default function RitEditor() {
   useEffect(() => {
     let vivo = true;
     (async () => {
-      const db = clienteSupabase();
-      if (db) {
-        const { data: sesion } = await db.auth.getSession();
-        const { data: perfil } = sesion.session ? await db.from("perfiles").select("empresa_id").maybeSingle() : { data: null };
-        if (!perfil?.empresa_id) return router.replace("/acceso");
-        repoRef.current = repositorioSupabase(db, perfil.empresa_id);
-      }
+      const repo = await abrirRepositorio();
+      if (!repo) return router.replace("/acceso");
+      repoRef.current = repo;
+      datos().listarRecordatorios().then((g) => vivo && setGenerales(g)).catch(() => {});
       try {
         const cargado = await repoRef.current.cargar();
         if (vivo) { setEstado(cargado); setListo(true); }
@@ -135,6 +136,7 @@ export default function RitEditor() {
   const vigencia = /^\d{4}-\d{2}-\d{2}$/.test(pub.fecha) ? fechaVigencia(pub.fecha) : null;
   const medioOk = pub.medio !== "";
 
+  const urgentes = contarUrgentes(construirAvisos(estado, generales));
   const resultado = auditar(estado.capitulos, estado.manuales);
   const sem = SEMAFORO[resultado.semaforo];
   const setEmpresa = (campo: keyof EstadoRit["empresa"], valor: string) =>
@@ -154,7 +156,14 @@ export default function RitEditor() {
             {guardado === "guardando" ? "Guardando…" : guardado === "ok" ? "Guardado" : guardado === "error" ? "No se pudo guardar" : ""}
           </span>
           <Link href="/biblioteca" className="hover:underline">Biblioteca</Link>
-          <Link href="/calendario" className="hover:underline">Calendario</Link>
+          <Link href="/calendario" className="hover:underline">
+            Calendario
+            {urgentes > 0 && (
+              <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-slate-900" title="Avisos vencidos o que vencen en 7 días">
+                {urgentes}
+              </span>
+            )}
+          </Link>
           <button onClick={exportar} className="rounded bg-white/15 px-3 py-1.5 font-semibold hover:bg-white/25">
             Descargar Word (.docx)
           </button>

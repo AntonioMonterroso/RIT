@@ -57,6 +57,45 @@ const vig = await page.getByRole("status").innerText();
 if (!vig.includes("24/10/2026")) throw new Error("vigencia incorrecta: " + vig);
 await page.screenshot({ path: path.join(OUT, "publicidad.png") });
 
+// Organizador (modo local): publica una ley y un recordatorio general.
+const manana = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+await page.goto(`${BASE}/organizador`);
+await page.getByLabel("Título", { exact: true }).first().fill("Código de Trabajo");
+await page.getByLabel("Referencia").fill("Decreto 1441");
+await page.getByLabel("Texto").fill("Artículo 57. Reglamento interior de trabajo es el conjunto de normas...");
+await page.getByRole("button", { name: "Publicar", exact: true }).click();
+await page.getByLabel("Título", { exact: true }).nth(1).fill("Revisión anual del RIT");
+await page.getByLabel("Fecha", { exact: true }).fill(manana);
+await page.getByRole("button", { name: "Crear recordatorio" }).click();
+await page.getByText("Código de Trabajo").first().waitFor();
+
+// Empresa: la biblioteca encuentra la ley y el calendario muestra los avisos.
+await page.goto(`${BASE}/biblioteca`);
+await page.getByLabel("Buscar en la biblioteca").fill("reglamento interior");
+await page.getByRole("button", { name: /Código de Trabajo/ }).click();
+if (!(await page.getByText("conjunto de normas").isVisible())) throw new Error("la ley no se abre");
+await page.getByLabel("Buscar en la biblioteca").fill("zzzz");
+await page.getByText("Ningún resultado.").waitFor();
+
+await page.goto(`${BASE}/calendario`);
+await page.getByLabel("Nuevo recordatorio").fill("Entregar memorial a la IGT");
+await page.getByLabel("Fecha", { exact: true }).fill(manana);
+await page.getByRole("button", { name: "Agregar" }).click();
+await page.getByText("Revisión anual del RIT").waitFor();
+await page.getByText("Entrada en vigor del RIT").waitFor();
+await page.screenshot({ path: path.join(OUT, "calendario.png") });
+
+// Insignia de urgentes en el editor: 2 (propio + general de mañana); se resuelve al marcar hecho.
+await page.goto(`${BASE}/editor`);
+await page.getByRole("link", { name: /Calendario/ }).waitFor();
+const insignia = await page.getByRole("link", { name: /Calendario/ }).innerText();
+if (!insignia.includes("2")) throw new Error("insignia esperada 2, fue: " + insignia);
+await page.goto(`${BASE}/calendario`);
+await page.getByLabel("Marcar como hecho: Entregar memorial a la IGT").check();
+await page.goto(`${BASE}/editor`);
+const insignia2 = await page.getByRole("link", { name: /Calendario/ }).innerText();
+if (!insignia2.includes("1")) throw new Error("insignia esperada 1 tras marcar hecho, fue: " + insignia2);
+
 // El borrador debe sobrevivir a una recarga.
 await page.reload();
 await page.getByRole("button", { name: "Datos de la empresa" }).click();

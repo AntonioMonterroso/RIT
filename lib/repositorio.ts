@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CAPITULOS, type CapituloKey } from "@/content/capitulos";
-import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit } from "@/lib/almacen";
+import { cargarBorrador, ESTADO_INICIAL, guardarBorrador, type EstadoRit, type RecordatorioPropio } from "@/lib/almacen";
 import { MEMORIAL_INICIAL } from "@/lib/memorial";
 import type { Nodo } from "@/lib/docx";
 
@@ -35,14 +35,15 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
 
   return {
     async cargar() {
-      const [docs, datos, check, memo, pub] = await Promise.all([
+      const [docs, datos, check, memo, pub, recs] = await Promise.all([
         db.from("rit_documentos").select("capitulo, contenido"),
         db.from("empresa_datos").select("*").maybeSingle(),
         db.from("checklist_igt").select("manuales").maybeSingle(),
         db.from("memoriales").select("datos").maybeSingle(),
         db.from("publicaciones").select("fecha, medio").maybeSingle(),
+        db.from("recordatorios_empresa").select("id, titulo, fecha, hecho"),
       ]);
-      for (const r of [docs, datos, check, memo, pub]) {
+      for (const r of [docs, datos, check, memo, pub, recs]) {
         if (r.error) throw new Error(`No se pudo cargar el RIT: ${r.error.message}`);
       }
 
@@ -51,6 +52,8 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
         capitulos[fila.capitulo] = fila.contenido;
         ultimo.set(`doc:${fila.capitulo}`, JSON.stringify({ empresa_id: empresaId, capitulo: fila.capitulo, contenido: fila.contenido }));
       }
+      const propios = (recs.data ?? []) as RecordatorioPropio[];
+      for (const r of propios) ultimo.set(`rec:${r.id}`, JSON.stringify({ empresa_id: empresaId, ...r }));
       const d = datos.data as Partial<EstadoRit["empresa"]> | null;
       return {
         ...ESTADO_INICIAL,
@@ -62,6 +65,7 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
           fecha: (pub.data as { fecha: string | null } | null)?.fecha ?? "",
           medio: ((pub.data as { medio: EstadoRit["publicacion"]["medio"] } | null)?.medio ?? ""),
         },
+        recordatorios: propios,
         actualizado: null,
       };
     },
@@ -82,6 +86,17 @@ export function repositorioSupabase(db: ClienteDatos, empresaId: string): Reposi
       await upsertSiCambio("publicaciones", "pub", {
         empresa_id: empresaId, fecha: estado.publicacion.fecha || null, medio: estado.publicacion.medio,
       }, "empresa_id");
+      // Recordatorios propios: se escriben los nuevos o editados y se borran los eliminados.
+      const vigentes = new Set(estado.recordatorios.map((r) => r.id));
+      for (const clave of [...ultimo.keys()]) {
+        if (!clave.startsWith("rec:") || vigentes.has(clave.slice(4))) continue;
+        const { error } = await db.from("recordatorios_empresa").delete().eq("id", clave.slice(4));
+        if (error) throw new Error(`No se pudo guardar recordatorios_empresa: ${error.message}`);
+        ultimo.delete(clave);
+      }
+      for (const r of estado.recordatorios) {
+        await upsertSiCambio("recordatorios_empresa", `rec:${r.id}`, { empresa_id: empresaId, id: r.id, titulo: r.titulo, fecha: r.fecha, hecho: r.hecho }, "id");
+      }
     },
   };
 }
