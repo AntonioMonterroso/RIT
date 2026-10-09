@@ -9,6 +9,7 @@ import { abrirSesion, fijarRolDemo } from "@/lib/sesion";
 import { puede, type Accion, type Rol } from "@/lib/equipo";
 import { calcularPlan, type InfoPlan } from "@/lib/plan";
 import type { Novedad } from "@/lib/novedades";
+import type { Validacion } from "@/lib/validables";
 import { construirAvisos, contarUrgentes, type Aviso } from "@/lib/avisos";
 import type { Recordatorio } from "@/lib/biblioteca";
 
@@ -29,6 +30,8 @@ interface Contexto {
   plan: InfoPlan;
   refrescarPlan: () => Promise<void>;
   novedades: Novedad[];
+  /** Constancias de revisión legal del contenido (solo lectura). */
+  validaciones: Validacion[];
   /** Verdadero si la persona puede hacer `accion` ahora (según su rol y el plan). */
   permitido: (accion: Accion) => boolean;
   /** Por qué no puede modificar, o null si puede. */
@@ -55,6 +58,7 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
   const [local, setLocal] = useState(true);
   const [plan, setPlan] = useState<InfoPlan>(() => calcularPlan("prueba", null));
   const [novedades, setNovedades] = useState<Novedad[]>([]);
+  const [validaciones, setValidaciones] = useState<Validacion[]>([]);
   const [bloqueo, setBloqueo] = useState("");
   const repo = useRef<Repositorio>(repositorioLocal);
   const ultimo = useRef(estado);
@@ -71,6 +75,7 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
       setRol(ses.rol); setLocal(ses.local);
       datos().listarRecordatorios().then((g) => vivo && setGenerales(g)).catch(() => {});
       datos().listarNovedades().then((n) => vivo && setNovedades(n)).catch(() => {});
+      datos().listarValidaciones().then((v) => vivo && setValidaciones(v)).catch(() => {});
       datos().miPlan().then((p) => vivo && setPlan(calcularPlan(p.estado, p.pruebaHasta))).catch(() => {});
       try {
         const e = await r.cargar();
@@ -128,9 +133,9 @@ export default function EstadoProvider({ children }: { children: React.ReactNode
   const valor = useMemo<Contexto>(
     () => ({
       estado, actualizar, listo, guardado, avisos, urgentes: contarUrgentes(avisos),
-      rol, local, cambiarRolDemo, plan, refrescarPlan, novedades, permitido, motivoLectura, bloqueo,
+      rol, local, cambiarRolDemo, plan, refrescarPlan, novedades, validaciones, permitido, motivoLectura, bloqueo,
     }),
-    [estado, actualizar, listo, guardado, avisos, rol, local, cambiarRolDemo, plan, refrescarPlan, novedades, permitido, motivoLectura, bloqueo],
+    [estado, actualizar, listo, guardado, avisos, rol, local, cambiarRolDemo, plan, refrescarPlan, novedades, validaciones, permitido, motivoLectura, bloqueo],
   );
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }

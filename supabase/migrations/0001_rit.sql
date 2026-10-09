@@ -153,6 +153,18 @@ create table public.novedades_legales (
   publicada_en timestamptz not null default now()
 );
 
+-- Validación legal del contenido: un abogado colegiado deja constancia de haber revisado cada pieza.
+-- La huella (SHA-256) es la del contenido revisado; si el contenido cambia, la validación queda desactualizada.
+create table public.validaciones_legales (
+  elemento_id text primary key,
+  huella text not null check (huella ~ '^[0-9a-f]{64}$'),
+  validada_por text not null check (length(btrim(validada_por)) >= 3),
+  colegiado text not null check (length(btrim(colegiado)) >= 1),
+  fecha_revision date not null,
+  nota text not null default '',
+  validada_en timestamptz not null default now()
+);
+
 create table public.recordatorios_globales (
   id uuid primary key default gen_random_uuid(),
   titulo text not null,
@@ -173,6 +185,7 @@ alter table public.publicaciones enable row level security;
 alter table public.rit_configuracion enable row level security;
 alter table public.biblioteca_leyes enable row level security;
 alter table public.novedades_legales enable row level security;
+alter table public.validaciones_legales enable row level security;
 alter table public.recordatorios_globales enable row level security;
 
 -- Perfiles: cada usuario ve el suyo. Las altas se hacen con service_role (sin política de escritura).
@@ -207,6 +220,10 @@ create policy biblioteca_escribir on public.biblioteca_leyes for all
 
 create policy novedades_leer on public.novedades_legales for select to authenticated using (true);
 create policy novedades_escribir on public.novedades_legales for all
+  using (public.es_organizador()) with check (public.es_organizador());
+
+create policy validaciones_leer on public.validaciones_legales for select to authenticated using (true);
+create policy validaciones_escribir on public.validaciones_legales for all
   using (public.es_organizador()) with check (public.es_organizador());
 
 create policy recordatorios_globales_leer on public.recordatorios_globales for select to authenticated using (true);

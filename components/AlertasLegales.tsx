@@ -5,9 +5,10 @@ import { Insignia } from "@/components/ui";
 import { CAPITULO_POR_KEY } from "@/content/capitulos";
 import { FUENTE_OFICIAL } from "@/content/baselegal";
 import type { AlertaLegal } from "@/lib/legal";
+import type { Validacion } from "@/lib/validables";
 
 /** Lista de alertas del verificador legal. Siempre aclara que es orientativo y que la base aún no la valida un abogado. */
-export default function AlertasLegales({ alertas, enlazar = false }: { alertas: AlertaLegal[]; enlazar?: boolean }) {
+export default function AlertasLegales({ alertas, enlazar = false, validaciones = [] }: { alertas: AlertaLegal[]; enlazar?: boolean; validaciones?: Validacion[] }) {
   if (alertas.length === 0) return <p className="text-sm text-muted">No se detectaron cifras ni expresiones que contradigan los mínimos revisados.</p>;
   return (
     <ul className="space-y-3">
@@ -19,7 +20,7 @@ export default function AlertasLegales({ alertas, enlazar = false }: { alertas: 
           </div>
           <p className="mt-2 font-medium">{a.mensaje}</p>
           <p className="mt-1 text-muted">«…{a.extracto}…»</p>
-          <p className="mt-1 text-xs text-muted">Base: {a.norma.norma}{a.norma.articulo ? `, art. ${a.norma.articulo}` : ""}. {a.norma.resumen} {a.norma.validada ? "" : "Referencia pendiente de validación por un abogado."}</p>
+          <p className="mt-1 text-xs text-muted">Base: {a.norma.norma}{a.norma.articulo ? `, art. ${a.norma.articulo}` : ""}. {a.norma.resumen} {validaciones.some((v) => v.elemento_id === `norma:${a.norma.id}`) ? "Referencia revisada por abogado colegiado." : "Referencia pendiente de validación por un abogado."}</p>
         </li>
       ))}
       <li className="text-xs text-muted">Orientativo: el sistema lee cifras y expresiones, no interpreta la ley. {FUENTE_OFICIAL}</li>

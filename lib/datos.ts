@@ -5,6 +5,7 @@ import {
 import { cargarBorrador } from "@/lib/almacen";
 import type { Novedad } from "@/lib/novedades";
 import { leerPlanLocal } from "@/lib/plan";
+import type { Validacion } from "@/lib/validables";
 import { clienteSupabase } from "@/lib/supabase/cliente";
 
 /**
@@ -25,6 +26,9 @@ export interface Datos {
   listarNovedades(): Promise<Novedad[]>;
   publicarNovedad(n: Pick<Novedad, "titulo" | "resumen" | "capitulo" | "texto_sugerido" | "vigente_desde">): Promise<void>;
   retirarNovedad(id: string): Promise<void>;
+  listarValidaciones(): Promise<Validacion[]>;
+  guardarValidacion(v: Omit<Validacion, "validada_en">): Promise<void>;
+  quitarValidacion(elementoId: string): Promise<void>;
   /** Estado de la suscripción de la empresa actual. */
   miPlan(): Promise<{ estado: string; pruebaHasta: string | null }>;
 }
@@ -32,6 +36,7 @@ export interface Datos {
 const K_LEYES = "rit:leyes:v1";
 const K_RECS = "rit:recordatorios-globales:v1";
 const K_NOVS = "rit:novedades:v1";
+const K_VALS = "rit:validaciones:v1";
 
 /** Novedades de ejemplo para la demostración local. Se identifican como ejemplo en el título. */
 const NOVEDADES_EJEMPLO: Novedad[] = [
@@ -75,6 +80,11 @@ export const datosLocal: Datos = {
     escribir(K_NOVS, [...actuales, { id: id(), ...n, publicada_en: ahora() }]);
   },
   async retirarNovedad(i) { escribir(K_NOVS, (await datosLocal.listarNovedades()).filter((x) => x.id !== i)); },
+  async listarValidaciones() { return leer<Validacion>(K_VALS); },
+  async guardarValidacion(v) {
+    escribir(K_VALS, [...leer<Validacion>(K_VALS).filter((x) => x.elemento_id !== v.elemento_id), { ...v, validada_en: ahora() }]);
+  },
+  async quitarValidacion(i) { escribir(K_VALS, leer<Validacion>(K_VALS).filter((x) => x.elemento_id !== i)); },
   async miPlan() { const p = leerPlanLocal(); return { estado: p.estado, pruebaHasta: p.pruebaHasta }; },
 };
 
@@ -105,6 +115,19 @@ export function datosSupabase(): Datos {
     retirarNovedad: async (i) => {
       const r = await db.from("novedades_legales").delete().eq("id", i);
       if (r.error) throw new Error(`No se pudo retirar la novedad: ${r.error.message}`);
+    },
+    listarValidaciones: async () => {
+      const r = await db.from("validaciones_legales").select("*");
+      if (r.error) throw new Error(`No se pudieron cargar las validaciones: ${r.error.message}`);
+      return (r.data ?? []) as Validacion[];
+    },
+    guardarValidacion: async (v) => {
+      const r = await db.from("validaciones_legales").upsert({ ...v, validada_en: new Date().toISOString() }, { onConflict: "elemento_id" });
+      if (r.error) throw new Error(`No se pudo guardar la validación: ${r.error.message}`);
+    },
+    quitarValidacion: async (i) => {
+      const r = await db.from("validaciones_legales").delete().eq("elemento_id", i);
+      if (r.error) throw new Error(`No se pudo quitar la validación: ${r.error.message}`);
     },
     miPlan: async () => {
       const r = await db.from("empresas").select("estado_suscripcion, prueba_hasta").maybeSingle();

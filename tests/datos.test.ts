@@ -32,4 +32,15 @@ describe("datos locales", () => {
     expect(e).toHaveLength(1);
     expect(e[0].estado_suscripcion).toBe("prueba");
   });
+
+  it("las validaciones legales se guardan, se reemplazan y se quitan", async () => {
+    const base = { elemento_id: "norma:vacaciones", huella: "a".repeat(64), validada_por: "Lic. A", colegiado: "1", fecha_revision: "2026-10-09", nota: "" };
+    await datosLocal.guardarValidacion(base);
+    await datosLocal.guardarValidacion({ ...base, nota: "ok" });
+    const l = await datosLocal.listarValidaciones();
+    expect(l).toHaveLength(1);
+    expect(l[0].nota).toBe("ok");
+    await datosLocal.quitarValidacion("norma:vacaciones");
+    expect(await datosLocal.listarValidaciones()).toEqual([]);
+  });
 });

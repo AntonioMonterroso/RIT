@@ -220,3 +220,17 @@ select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
 select pg_temp.afirma((select count(*) from novedades_legales) = 1, 'empresa lee novedades legales');
 select pg_temp.falla($q$insert into novedades_legales(titulo, resumen) values ('x','y')$q$, 'empresa no publica novedades');
 reset role;
+
+-- ───────── Validación legal del contenido ─────────
+select pg_temp.como('c0000000-0000-0000-0000-00000000000c');
+insert into validaciones_legales(elemento_id, huella, validada_por, colegiado, fecha_revision) values ('norma:vacaciones', repeat('a',64), 'Lic. Ana Pérez', '12345', '2026-10-09');
+select pg_temp.falla($q$insert into validaciones_legales(elemento_id, huella, validada_por, colegiado, fecha_revision) values ('x', 'corta', 'Lic. Ana Pérez', '1', '2026-10-09')$q$, 'huella inválida rechazada en validaciones');
+select pg_temp.falla($q$insert into validaciones_legales(elemento_id, huella, validada_por, colegiado, fecha_revision) values ('y', repeat('a',64), 'Li', '1', '2026-10-09')$q$, 'nombre de validador demasiado corto');
+reset role;
+select pg_temp.como('a0000000-0000-0000-0000-00000000000a');
+select pg_temp.afirma((select count(*) from validaciones_legales) = 1, 'la empresa lee las validaciones');
+update validaciones_legales set validada_por = 'Falsificada';
+delete from validaciones_legales;
+select pg_temp.afirma((select validada_por from validaciones_legales) = 'Lic. Ana Pérez', 'la empresa no modifica ni borra validaciones');
+select pg_temp.falla($q$insert into validaciones_legales(elemento_id, huella, validada_por, colegiado, fecha_revision) values ('z', repeat('b',64), 'Lic. Falso', '9', '2026-10-09')$q$, 'la empresa no valida contenido');
+reset role;

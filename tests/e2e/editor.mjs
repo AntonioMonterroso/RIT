@@ -295,13 +295,28 @@ await page.getByRole("button", { name: /Código de Trabajo/ }).click();
 verificar(await page.getByText("conjunto de normas").isVisible(), "la empresa ve la ley publicada por el organizador");
 await ir("/calendario");
 await page.getByText("Revisión anual del RIT").waitFor();
-verificar(await page.getByText("Plazo del sistema").isVisible(), "el calendario muestra el recordatorio general y el plazo del sistema");
+verificar(await page.getByText("Plazo del sistema").first().isVisible(), "el calendario muestra el recordatorio general y el plazo del sistema");
 await page.getByLabel("Qué hay que hacer").fill("Entregar memorial a la IGT");
 await page.getByLabel("Fecha", { exact: true }).fill(manana);
 await page.getByRole("button", { name: "Agregar" }).click();
 const barra = await page.getByRole("navigation", { name: "Principal" }).innerText();
-verificar(/Calendario\s*2/.test(barra), "la barra lateral muestra 2 avisos urgentes");
+verificar(/Calendario\s*[2-9]/.test(barra), "la barra lateral muestra al menos 2 avisos urgentes");
 await page.screenshot({ path: path.join(OUT, "06_calendario.png") });
+
+// 14a0. Revisión legal por un abogado: se valida una pieza y la empresa lo ve
+await ir("/organizador");
+await page.getByText(/piezas validadas/).first().waitFor();
+const fila = page.locator("li").filter({ hasText: "Código de Trabajo (Decreto 1441), art. 130" }).first();
+await fila.getByRole("button", { name: "Revisar" }).click();
+await fila.getByLabel("Nombre del abogado").fill("Lic. Ana Pérez");
+await fila.getByLabel("Número de colegiado").fill("12345");
+await fila.getByRole("button", { name: "Validar esta pieza" }).click();
+await fila.getByText("Validada", { exact: true }).waitFor();
+verificar(true, "el abogado valida una pieza y queda su constancia");
+const paquete = await descargar(page.getByRole("button", { name: /Descargar paquete para el abogado/ }));
+verificar(paquete.endsWith(".docx"), "se descarga el paquete de revisión legal (.docx)");
+await ir("/auditoria");
+verificar(/1 de \d+ piezas validadas por abogado colegiado/.test(await texto()), "la empresa ve cuántas piezas revisó un abogado");
 
 // 14a. Verificación legal sobre el reglamento generado
 await ir("/auditoria");

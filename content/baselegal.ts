@@ -1,5 +1,5 @@
-// Registro de la base legal que usa el verificador. NINGUNA entrada está validada por un abogado:
-// `validada` pasa a true solo cuando un profesional la revise contra el texto oficial vigente.
+// Registro de la base legal que usa el verificador. La validación por un abogado colegiado NO se guarda aquí:
+// se registra en el panel de revisión legal (lib/validables.ts) y queda ligada a la huella del contenido.
 // `articulo` queda en null cuando no se pudo confirmar el número exacto contra el texto oficial.
 
 export interface NormaBase {

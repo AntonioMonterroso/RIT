@@ -27,7 +27,7 @@ type Panel = "guia" | "revision" | "clausulas";
 const VACIO: Nodo = { type: "doc", content: [{ type: "paragraph" }] };
 
 export default function Redaccion() {
-  const { estado, actualizar, listo, permitido } = useRit();
+  const { estado, actualizar, listo, permitido, validaciones } = useRit();
   const puedeEditar = permitido("editar");
   const [cap, setCap] = useState<CapituloKey>("mod_1");
   const [panel, setPanel] = useState<Panel>("guia");
@@ -190,7 +190,7 @@ export default function Redaccion() {
                 ? <Aviso tono="warn">Hay {rev.pendientes} dato(s) por completar en este capítulo (resaltados en amarillo).</Aviso>
                 : rev.cumple ? <Aviso tono="ok">Este capítulo cumple los requisitos.</Aviso> : null}
               {pendTotal > 0 && <Boton variante="secundario" pequeno className="w-full" onClick={siguientePendiente}>Ir al siguiente dato pendiente ({pendTotal})</Boton>}
-              <div><p className="mb-2 font-bold">Verificación legal{legales.length > 0 && <span className="ml-1.5"><Insignia tono={legales.some((a) => a.gravedad === "contradice") ? "danger" : "warn"}>{legales.length}</Insignia></span>}</p><AlertasLegales alertas={legales} /></div>
+              <div><p className="mb-2 font-bold">Verificación legal{legales.length > 0 && <span className="ml-1.5"><Insignia tono={legales.some((a) => a.gravedad === "contradice") ? "danger" : "warn"}>{legales.length}</Insignia></span>}</p><AlertasLegales alertas={legales} validaciones={validaciones} /></div>
             </>
           )}
           {panel === "clausulas" && (

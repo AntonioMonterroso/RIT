@@ -7,6 +7,8 @@ import { BLOQUES, CRITERIOS } from "@/content/checklist";
 import { auditar } from "@/lib/auditoria";
 import { externosAuditoria } from "@/lib/progreso";
 import AlertasLegales from "@/components/AlertasLegales";
+import { resumenValidacion, validables } from "@/lib/validables";
+import { consistencia } from "@/lib/consistencia";
 import { alertasLegales } from "@/lib/legal";
 import { NORMAS } from "@/content/baselegal";
 import { pendientesTotales, revisarCapitulo } from "@/lib/revision";
@@ -18,11 +20,13 @@ const SEM = {
 } as const;
 
 export default function Auditoria() {
-  const { estado, actualizar } = useRit();
+  const { estado, actualizar, validaciones } = useRit();
   const r = auditar(estado.capitulos, estado.manuales, externosAuditoria(estado));
   const s = SEM[r.semaforo];
   const pend = pendientesTotales(estado.capitulos);
   const legales = alertasLegales(estado.capitulos);
+  const incons = consistencia(estado);
+  const rv = resumenValidacion(validables(), validaciones);
 
   return (
     <Pagina titulo="Auditoría previa a la IGT" descripcion="Los criterios de contenido se verifican solos leyendo su reglamento. Los documentos de soporte los marca usted.">
@@ -63,12 +67,22 @@ export default function Auditoria() {
               </ul>
             </Tarjeta>
           ))}
+          <Tarjeta titulo="Coherencia del reglamento" descripcion="Que el texto diga lo mismo que su diagnóstico, sus puestos y que no se contradiga.">
+            {incons.length === 0 ? <p className="text-sm text-muted">No se encontraron inconsistencias.</p> : (
+              <ul className="space-y-2 text-sm">
+                {incons.map((i) => (
+                  <li key={i.id} className="flex items-start gap-2"><span aria-hidden className="text-warn">•</span><span className="flex-1">{i.mensaje}</span>{i.capitulo && <Link href={`/editor?cap=${i.capitulo}`} className="shrink-0 text-xs font-semibold text-brand-700 underline">Ir</Link>}</li>
+                ))}
+              </ul>
+            )}
+          </Tarjeta>
           <Tarjeta titulo="Verificación legal" descripcion="Compara las cifras y expresiones de su reglamento con los mínimos del Código de Trabajo y otras normas.">
-            <AlertasLegales alertas={legales} enlazar />
+            <AlertasLegales alertas={legales} enlazar validaciones={validaciones} />
+            <p className="mt-3 text-xs text-muted">Revisión legal del contenido: {rv.validadas} de {rv.total} piezas validadas por abogado colegiado{rv.desactualizadas ? `; ${rv.desactualizadas} cambiaron después de validarse` : ""}.</p>
             <details className="mt-4 text-sm">
               <summary className="cursor-pointer font-semibold text-brand-700">Normas que se revisan ({Object.keys(NORMAS).length})</summary>
               <ul className="mt-2 space-y-2 text-muted">
-                {Object.values(NORMAS).map((n) => <li key={n.id}><b className="text-ink">{n.norma}{n.articulo ? `, art. ${n.articulo}` : ""}:</b> {n.resumen} <i>{n.validada ? "Validada." : "Pendiente de validación por un abogado."}</i></li>)}
+                {Object.values(NORMAS).map((n) => <li key={n.id}><b className="text-ink">{n.norma}{n.articulo ? `, art. ${n.articulo}` : ""}:</b> {n.resumen} <i>{validaciones.some((v) => v.elemento_id === `norma:${n.id}`) ? "Revisada por abogado colegiado." : "Pendiente de validación por un abogado."}</i></li>)}
               </ul>
             </details>
           </Tarjeta>

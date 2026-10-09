@@ -6,6 +6,8 @@ import { datos } from "@/lib/datos";
 import type { EmpresaResumen, Ley, Recordatorio } from "@/lib/biblioteca";
 import { CAPITULOS, type CapituloKey } from "@/content/capitulos";
 import type { Novedad } from "@/lib/novedades";
+import type { Validacion } from "@/lib/validables";
+import RevisionLegal from "./RevisionLegal";
 import { clienteSupabase, supabaseConfigurado } from "@/lib/supabase/cliente";
 import TemaToggle from "./TemaToggle";
 import { Aviso, AreaTexto, Boton, Insignia, Pagina, Seleccion, Tarjeta, Texto } from "./ui";
@@ -18,6 +20,7 @@ export default function PanelOrganizador() {
   const [leyes, setLeyes] = useState<Ley[]>([]);
   const [recs, setRecs] = useState<Recordatorio[]>([]);
   const [novs, setNovs] = useState<Novedad[]>([]);
+  const [vals, setVals] = useState<Validacion[]>([]);
   const [nov, setNov] = useState({ titulo: "", resumen: "", capitulo: "" as CapituloKey | "", texto_sugerido: "" });
   const [empresas, setEmpresas] = useState<EmpresaResumen[]>([]);
   const [error, setError] = useState("");
@@ -27,8 +30,8 @@ export default function PanelOrganizador() {
   const refrescar = useCallback(async () => {
     try {
       const d = datos();
-      const [l, r, e, n] = await Promise.all([d.listarLeyes(), d.listarRecordatorios(), d.listarEmpresas(), d.listarNovedades()]);
-      setLeyes(l); setRecs(r); setEmpresas(e); setNovs(n); setError("");
+      const [l, r, e, n, v] = await Promise.all([d.listarLeyes(), d.listarRecordatorios(), d.listarEmpresas(), d.listarNovedades(), d.listarValidaciones()]);
+      setLeyes(l); setRecs(r); setEmpresas(e); setNovs(n); setVals(v); setError("");
     } catch (x) { setError((x as Error).message); }
   }, []);
 
@@ -103,6 +106,8 @@ export default function PanelOrganizador() {
             ))}
           </ul>
         </Tarjeta>
+
+        <RevisionLegal validaciones={vals} onGuardar={async (v) => { await datos().guardarValidacion(v); await refrescar(); }} onQuitar={async (i) => { await datos().quitarValidacion(i); await refrescar(); }} />
 
         <Tarjeta titulo="Empresas" descripcion="Solo se muestran el nombre y el estado de la suscripción." relleno={false}>
           <table className="w-full text-left text-sm">
